@@ -1,0 +1,3233 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>JadwalKu — Sistem Booking & Kalender Hari Libur Karyawan</title>
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="description" content="Aplikasi Booking Hari Libur Karyawan Anti-Bentrok dengan Kalender Interaktif" />
+
+  <!-- 1-File PWA Web App Manifest via Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"JadwalKu - Booking Libur Karyawan","short_name":"JadwalKu","start_url":".","display":"standalone","background_color":"#f8fafc","theme_color":"#2563eb","description":"Sistem Booking & Kalender Hari Libur Karyawan Anti Tabrakan","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3652/3652191.png","sizes":"512x512","type":"image/png"}]}' />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- FontAwesome 6 Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Full-Screen Wrapper untuk menutupi template bawaan Blogger */
+    #blogger-pwa-wrapper {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 999999;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 50%, #f1f5f9 100%);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Glassmorphism Corporate White Effects */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.06);
+    }
+
+    .glass-card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+      box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.04);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-card:hover {
+      box-shadow: 0 10px 25px -6px rgba(37, 99, 235, 0.09);
+    }
+
+    /* Kalender Tanggalan Styling */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      #calendar-header-days {
+        display: none !important;
+      }
+      .calendar-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+      }
+    }
+
+    /* Chip Nama Karyawan di Kalender: Anti-Terpotong (Full Readable Wrap) */
+    .emp-calendar-chip {
+      white-space: normal !important;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      line-height: 1.2;
+    }
+
+    /* Animasi Notifikasi Tanggal Tabrakan (> 1 Orang Libur) */
+    .collision-cell {
+      background: linear-gradient(145deg, #fff1f2 0%, #ffe4e6 60%, #fecdd3 100%) !important;
+      border: 2px solid #f43f5e !important;
+      box-shadow: 0 6px 20px -4px rgba(244, 63, 94, 0.28) !important;
+      position: relative;
+    }
+
+    .collision-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -4px rgba(244, 63, 94, 0.38) !important;
+    }
+
+    .safe-leave-cell {
+      background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%) !important;
+      border: 1.5px solid #34d399 !important;
+    }
+
+    .safe-leave-cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.2) !important;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% {
+        box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 5px rgba(244, 63, 94, 0);
+      }
+    }
+
+    .pulse-collision {
+      animation: pulse-border 2s infinite;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(241, 245, 249, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.6);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.8);
+    }
+
+    /* Responsive Navigation Rules */
+    @media (min-width: 768px) {
+      #desktop-sidebar {
+        display: flex !important;
+      }
+      #mobile-bottom-nav {
+        display: none !important;
+      }
+      #main-scroll-area {
+        padding-bottom: 2rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      #desktop-sidebar {
+        display: none !important;
+      }
+      #mobile-bottom-nav {
+        display: flex !important;
+      }
+      #main-scroll-area {
+        padding-bottom: 6.5rem;
+      }
+    }
+  </style>
+</head>
+<body class=" m-0 p-0 overflow-hidden select-none">
+
+  <!-- FULL SCREEN WRAPPER -->
+  <div id="blogger-pwa-wrapper">
+    <div class="flex h-full w-full overflow-hidden">
+
+      <!-- DESKTOP LEFT SIDEBAR (>= 768px) -->
+      <aside id="desktop-sidebar" class="w-72 h-full glass-panel border-r border-slate-200/80 flex-col justify-between z-30 shrink-0">
+        <div>
+          <!-- Brand Header (Dinamis dari Pengaturan Admin) -->
+          <div class="p-6 border-b border-slate-200/70 flex items-center gap-3.5">
+            <div id="brand-logo-desktop" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 overflow-hidden shrink-0">
+              <i class="fa-solid fa-calendar-check text-xl"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h1 id="brand-site-name" class="font-extrabold text-lg tracking-tight text-slate-900 truncate">JadwalKu</h1>
+                <span id="sidebar-role-badge" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">Publik</span>
+              </div>
+              <p id="brand-site-subtitle" class="text-xs text-slate-500 font-medium truncate">Booking Libur Anti-Bentrok</p>
+            </div>
+          </div>
+
+          <!-- Status Ringkasan Bentrok Bulan Ini -->
+          <div class="px-5 pt-4">
+            <div id="sidebar-collision-box" class="p-3.5 rounded-2xl border transition-all cursor-pointer" onclick="window.app.switchTab('calendar')">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Navigation Links -->
+          <nav class="p-4 space-y-1.5">
+            <p class="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Menu Utama</p>
+            
+            <button onclick="window.app.switchTab('calendar')" id="nav-desktop-calendar" class="w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all">
+              <span class="flex items-center gap-3">
+                <i class="fa-regular fa-calendar-days w-5 text-center text-base"></i>
+                <span>Kalender Libur</span>
+              </span>
+              <span id="badge-nav-calendar" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">0</span>
+            </button>
+
+            <button onclick="window.app.switchTab('booking')" id="nav-desktop-booking" class="w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all">
+              <span class="flex items-center gap-3">
+                <i class="fa-solid fa-calendar-plus w-5 text-center text-base"></i>
+                <span>Booking Hari Libur</span>
+              </span>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">+ Baru</span>
+            </button>
+
+            <button onclick="window.app.switchTab('schedules')" id="nav-desktop-schedules" class="w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all">
+              <span class="flex items-center gap-3">
+                <i class="fa-solid fa-arrows-rotate w-5 text-center text-base"></i>
+                <span>Ganti Hari Libur</span>
+              </span>
+              <span id="badge-nav-schedules" class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">0</span>
+            </button>
+
+            <button onclick="window.app.switchTab('employees')" id="nav-desktop-employees" class="w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all">
+              <span class="flex items-center gap-3">
+                <i class="fa-solid fa-users-gear w-5 text-center text-base"></i>
+                <span>Tim & Admin</span>
+              </span>
+              <span id="badge-nav-admin" class="hidden text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Admin</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Bottom Info & Access Mode -->
+        <div class="p-4 border-t border-slate-200/70 space-y-2.5">
+          <div class="p-3 rounded-xl bg-slate-50/90 border border-slate-200/70 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div id="access-status-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></div>
+              <div class="truncate">
+                <p id="access-mode-title" class="text-xs font-bold text-slate-800 truncate">Akses Publik Aktif</p>
+                <p id="access-mode-subtitle" class="text-[11px] text-slate-500 truncate">Karyawan Tanpa Login</p>
+              </div>
+            </div>
+            <button id="btn-sidebar-auth" onclick="window.app.openAuthModal()" class="text-xs font-bold text-blue-600 hover:text-blue-800 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition shrink-0">
+              <i class="fa-solid fa-user-shield mr-1"></i>Admin
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between px-1 text-[11px] text-slate-400">
+            <span id="db-mode-indicator"><i class="fa-solid fa-database mr-1"></i>Mode Preview</span>
+            <button id="btn-install-pwa" class="hidden text-blue-600 font-bold hover:underline">
+              <i class="fa-solid fa-download mr-1"></i>Install App
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT AREA -->
+      <div class="flex-1 flex flex-col h-full overflow-hidden relative">
+
+        <!-- TOP HEADER BAR -->
+        <header class="glass-panel border-b border-slate-200/80 px-4 sm:px-6 py-3.5 flex items-center justify-between z-20 shrink-0">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- Mobile Brand Icon (Dinamis) -->
+            <div id="brand-logo-mobile" class="md:hidden w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20 overflow-hidden shrink-0">
+              <i class="fa-solid fa-calendar-check text-sm"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="flex items-center gap-2">
+                <h2 id="header-page-title" class="text-base sm:text-lg font-extrabold text-slate-900 leading-tight truncate">Kalender Hari Libur Karyawan</h2>
+                <span id="header-admin-pill" class="hidden text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-600 text-white shrink-0">Mode Admin</span>
+              </div>
+              <p id="header-page-subtitle" class="text-xs text-slate-500 hidden sm:block truncate">Pantau tanggal libur teman kerja agar tidak terjadi jadwal libur yang tabrakan</p>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button onclick="window.app.openQuickBookingModal()" class="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-blue-500/25 transition transform active:scale-95">
+              <i class="fa-solid fa-plus"></i>
+              <span>Booking Libur</span>
+            </button>
+
+            <button id="btn-mobile-auth" onclick="window.app.openAuthModal()" class="md:hidden px-2.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 flex items-center gap-1.5 text-xs font-bold shadow-sm">
+              <i class="fa-solid fa-user-shield text-blue-600"></i>
+              <span id="label-mobile-auth">Admin</span>
+            </button>
+          </div>
+        </header>
+
+        <!-- SCROLLABLE PAGE VIEWS -->
+        <main id="main-scroll-area" class="flex-1 overflow-y-auto px-2 sm:px-6 py-3 sm:py-6 space-y-4 sm:space-y-5 select-text">
+
+          <!-- ========================================== -->
+          <!-- VIEW 1: KALENDER LIBUR (DASHBOARD UTAMA)   -->
+          <!-- ========================================== -->
+          <section id="view-calendar" class="space-y-4 sm:space-y-5 max-w-7xl mx-auto">
+
+            <!-- BANNER PERINGATAN TABRAKAN / BENTROK OTOMATIS -->
+            <div id="collision-alert-banner" class="hidden rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 border-2 border-rose-300 shadow-lg shadow-rose-500/10">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="flex items-start gap-3.5">
+                  <div class="w-11 h-11 rounded-2xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-rose-600/30 animate-bounce">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                  </div>
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-rose-600 text-white tracking-wide">Peringatan Jadwal Tabrakan!</span>
+                      <h3 id="collision-banner-title" class="text-sm sm:text-base font-extrabold text-rose-950">Ditemukan Tanggal dengan Lebih dari 1 Karyawan Libur Bersamaan</h3>
+                    </div>
+                    <p class="text-xs sm:text-sm text-rose-800 mt-1">
+                      Klik pada tanggal bertanda merah di bawah untuk melihat siapa saja yang libur bareng atau klik <strong>Ganti Hari Libur</strong> agar operasional tetap aman.
+                    </p>
+                    <!-- Chips daftar tanggal bentrok -->
+                    <div id="collision-dates-chips" class="flex flex-wrap gap-2 mt-3"></div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                  <button onclick="window.app.switchTab('schedules', 'collision')" class="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-md shadow-rose-600/20 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                    <span>Atur & Ganti Hari Libur</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- BANNER AMAN (Jika Tidak Ada Bentrok Sama Sekali di Bulan Ini) -->
+            <div id="safe-alert-banner" class="hidden rounded-2xl p-3.5 sm:px-5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                  <h4 class="text-xs sm:text-sm font-bold text-emerald-950">Jadwal Bulan Ini Aman! Tidak Ada Libur yang Tabrakan</h4>
+                  <p class="text-[11px] sm:text-xs text-emerald-700">Seluruh tanggal libur karyawan di bulan ini terdistribusi maksimal 1 orang per hari.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- KONTROL KALENDER & FILTER -->
+            <div class="glass-card rounded-2xl p-2.5 sm:p-5">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
+                
+                <!-- Navigasi Bulan & Tahun -->
+                <div class="flex items-center justify-between sm:justify-start gap-2 sm:gap-3">
+                  <div class="flex items-center bg-slate-100/90 p-1 rounded-xl border border-slate-200/80">
+                    <button onclick="window.app.changeMonth(-1)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg hover:bg-white text-slate-700 flex items-center justify-center transition shadow-sm" title="Bulan Sebelumnya">
+                      <i class="fa-solid fa-chevron-left text-xs"></i>
+                    </button>
+                    <div class="px-3 sm:px-4 py-1 text-center min-w-[135px] sm:min-w-[180px]">
+                      <span id="calendar-month-label" class="font-extrabold text-xs sm:text-base text-slate-900">November 2026</span>
+                    </div>
+                    <button onclick="window.app.changeMonth(1)" class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg hover:bg-white text-slate-700 flex items-center justify-center transition shadow-sm" title="Bulan Berikutnya">
+                      <i class="fa-solid fa-chevron-right text-xs"></i>
+                    </button>
+                  </div>
+
+                  <button onclick="window.app.goToToday()" class="px-3 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs shadow-sm transition shrink-0">
+                    Hari Ini
+                  </button>
+                </div>
+
+                <!-- Filter Divisi & Legenda Warna -->
+                <div class="flex flex-wrap items-center justify-between lg:justify-end gap-2.5 sm:gap-3">
+                  <!-- Legenda Indikator Warna -->
+                  <div class="w-full sm:w-auto flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-3 text-[11px] sm:text-xs font-semibold bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/80">
+                    <span class="flex items-center gap-1.5 text-slate-600">
+                      <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-md bg-white border border-slate-300 inline-block"></span>
+                      Kosong
+                    </span>
+                    <span class="flex items-center gap-1.5 text-emerald-700">
+                      <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-md bg-emerald-100 border border-emerald-500 inline-block"></span>
+                      Aman (1 Orang)
+                    </span>
+                    <span class="flex items-center gap-1.5 text-rose-700 font-bold">
+                      <span class="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-md bg-rose-200 border-2 border-rose-600 inline-block animate-pulse"></span>
+                      Tabrakan (&gt;1 Orang)
+                    </span>
+                  </div>
+
+                  <!-- Filter Divisi -->
+                  <div class="relative w-full sm:w-auto">
+                    <select id="filter-calendar-dept" onchange="window.app.renderCalendar()" class="w-full sm:w-48 pl-3.5 pr-8 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="ALL">Semua Divisi / Bagian</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Wrapper Tabel Kalender (2 Kolom Otomatis di HP & 7 Kolom di Desktop) -->
+              <div id="calendar-scroll-wrapper" class="mt-3 sm:mt-5 pb-1">
+                <div id="calendar-inner-container" class="min-w-0">
+                  <!-- Header Nama Hari (Tampil di Tablet/Desktop) -->
+                  <div id="calendar-header-days" class="calendar-grid mb-2">
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-rose-500 bg-rose-50/70 rounded-lg">Min</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100/80 rounded-lg">Sen</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100/80 rounded-lg">Sel</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100/80 rounded-lg">Rab</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100/80 rounded-lg">Kam</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-600 bg-slate-100/80 rounded-lg">Jum</div>
+                    <div class="text-center py-2 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50/70 rounded-lg">Sab</div>
+                  </div>
+
+                  <!-- Grid Kotak Tanggal Kalender -->
+                  <div id="calendar-days-grid" class="calendar-grid">
+                    <!-- Di-render secara dinamis oleh JavaScript -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- RINGKASAN STATISTIK BAWAH KALENDER -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0">
+                  <i class="fa-solid fa-calendar-day"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-slate-500">TotalPengajuan Bulan Ini</p>
+                  <p id="stat-total-bookings" class="text-xl font-extrabold text-slate-900">0 Jadwal</p>
+                </div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+                  <i class="fa-solid fa-user-check"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-slate-500">Tanggal Libur Aman (1 Orang)</p>
+                  <p id="stat-safe-days" class="text-xl font-extrabold text-emerald-700">0 Tanggal</p>
+                </div>
+              </div>
+
+              <div class="glass-card rounded-2xl p-4 flex items-center gap-4 border-rose-200">
+                <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0">
+                  <i class="fa-solid fa-users-slash"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-slate-500">Tanggal Libur Tabrakan (&gt;1 Orang)</p>
+                  <p id="stat-collision-days" class="text-xl font-extrabold text-rose-600">0 Tanggal</p>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- ========================================== -->
+          <!-- VIEW 2: FORM BOOKING HARI LIBUR            -->
+          <!-- ========================================== -->
+          <section id="view-booking" class="hidden max-w-4xl mx-auto space-y-5">
+            <div class="glass-card rounded-2xl p-5 sm:p-7">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-200/80">
+                <div>
+                  <span class="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">Tanpa Login • Langsung Tercatat</span>
+                  <h3 class="text-lg sm:text-xl font-extrabold text-slate-900 mt-1.5">Form Booking Hari Libur Kerja</h3>
+                  <p class="text-xs sm:text-sm text-slate-500">Pilih 1 hari atau lebih dari 1 hari. Sistem otomatis mendeteksi jika tanggal tersebut sudah diisi teman lain.</p>
+                </div>
+                <button onclick="window.app.switchTab('calendar')" class="self-start sm:self-center px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+                  <i class="fa-regular fa-calendar mr-1.5"></i>Lihat Kalender
+                </button>
+              </div>
+
+              <form id="form-create-booking" onsubmit="window.app.submitNewBooking(event)" class="mt-6 space-y-6">
+                
+                <!-- 1. Pilih Nama Karyawan -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                      <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700">Nama Karyawan <span class="text-rose-500">*</span></label>
+                      <button type="button" onclick="window.app.toggleQuickAddEmployee()" class="text-xs font-bold text-blue-600 hover:underline">
+                        <i class="fa-solid fa-user-shield mr-1"></i>+ Tambah Karyawan
+                      </button>
+                    </div>
+                    <select id="booking-employee-id" required onchange="window.app.checkBookingFormConflicts()" class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <!-- Diisi dinamis -->
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">Kategori Libur <span class="text-rose-500">*</span></label>
+                    <select id="booking-leave-type" required class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                      <option value="Libur Rutin / Off">Libur Rutin / Off Mingguan</option>
+                      <option value="Cuti Tahunan">Cuti Tahunan</option>
+                      <option value="Tukar Jaga / Shift">Tukar Jaga / Ganti Shift</option>
+                      <option value="Izin Keperluan">Izin Keperluan Keluarga / Pribadi</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Box Tambah Karyawan Cepat (Jika nama belum terdaftar) -->
+                <div id="quick-add-emp-box" class="hidden p-4 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-extrabold uppercase text-blue-900"><i class="fa-solid fa-user-plus mr-1.5"></i>Tambah Nama Karyawan Baru Cepat</h4>
+                    <button type="button" onclick="window.app.toggleQuickAddEmployee()" class="text-xs text-slate-500 hover:text-slate-800"><i class="fa-solid fa-xmark"></i> Tutup</button>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <input type="text" id="quick-emp-name" placeholder="Nama Lengkap (Cth: Dedi Kurniawan)" class="px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold" />
+                    <input type="text" id="quick-emp-dept" placeholder="Divisi / Bagian (Cth: Operasional)" class="px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold" />
+                    <button type="button" onclick="window.app.saveQuickEmployee()" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition">
+                      Simpan & Pilih Nama
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 2. Pilih Mode Durasi: 1 Hari atau Lebih dari 1 Hari -->
+                <div>
+                  <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">Durasi Hari Libur <span class="text-rose-500">*</span></label>
+                  <div class="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
+                    <button type="button" id="btn-mode-single" onclick="window.app.setDurationMode('single')" class="py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-white text-blue-600 shadow-sm">
+                      <i class="fa-solid fa-calendar-day"></i>
+                      <span>Libur 1 Hari</span>
+                    </button>
+                    <button type="button" id="btn-mode-multi" onclick="window.app.setDurationMode('multi')" class="py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900">
+                      <i class="fa-solid fa-calendar-week"></i>
+                      <span>Lebih dari 1 Hari (Rentang)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 3. Input Tanggal Mulai & Selesai -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                  <div>
+                    <label id="label-start-date" class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">Pilih Tanggal Libur <span class="text-rose-500">*</span></label>
+                    <input type="date" id="booking-start-date" required onchange="window.app.onStartDateChange()" class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+
+                  <div id="wrapper-end-date" class="hidden">
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">Sampai Tanggal (Selesai Libur) <span class="text-rose-500">*</span></label>
+                    <input type="date" id="booking-end-date" onchange="window.app.checkBookingFormConflicts()" class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-sm font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+
+                  <!-- Badge Total Hari -->
+                  <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-600">Total Durasi Diambil:</span>
+                    <span id="booking-total-days-badge" class="px-3 py-1 rounded-lg bg-blue-100 text-blue-800 font-extrabold text-xs">1 Hari</span>
+                  </div>
+                </div>
+
+                <!-- 4. DETEKTOR BENTROK REAL-TIME -->
+                <div id="live-conflict-detector" class="rounded-2xl p-4 border transition-all">
+                  <!-- Diisi otomatis saat pilih tanggal -->
+                </div>
+
+                <!-- 5. Catatan / Alasan (Opsional) -->
+                <div>
+                  <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-1.5">Keterangan / Catatan Tambahan (Opsional)</label>
+                  <input type="text" id="booking-reason" placeholder="Contoh: Libur jatah mingguan / Acara keluarga di luar kota..." class="w-full px-4 py-3 rounded-xl bg-white border border-slate-300 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+
+                <!-- Submit Buttons -->
+                <div class="pt-2 flex flex-col sm:flex-row items-center justify-end gap-3">
+                  <button type="button" onclick="window.app.switchTab('calendar')" class="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm transition">
+                    Batal
+                  </button>
+                  <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm shadow-lg shadow-blue-500/30 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Simpan Booking Libur</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          <!-- ========================================== -->
+          <!-- VIEW 3: JADWAL & GANTI HARI LIBUR          -->
+          <!-- ========================================== -->
+          <section id="view-schedules" class="hidden max-w-6xl mx-auto space-y-5">
+            
+            <!-- Header & Filter Bar -->
+            <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-4">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 class="text-base sm:text-lg font-extrabold text-slate-900">Daftar Jadwal & Ganti Hari Libur (Reschedule)</h3>
+                  <p class="text-xs text-slate-500">Karyawan dapat langsung mengganti tanggal liburnya jika ada keperluan mendadak atau jika bentrok dengan teman.</p>
+                </div>
+
+                <!-- Search & Filter Bulan -->
+                <div class="flex flex-col sm:flex-row items-center gap-2.5 w-full md:w-auto">
+                  <select id="filter-schedule-month" onchange="window.app.renderSchedulesList()" class="w-full sm:w-44 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="ALL">Semua Bulan</option>
+                    <option value="CURRENT">Bulan Kalender Aktif</option>
+                  </select>
+
+                  <div class="relative w-full sm:w-64">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="search-schedule-input" oninput="window.app.renderSchedulesList()" placeholder="Cari nama karyawan / divisi..." class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filter Tabs -->
+              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                <button onclick="window.app.setScheduleFilter('all')" id="tab-filter-all" class="px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                  Semua Jadwal
+                </button>
+                <button onclick="window.app.setScheduleFilter('collision')" id="tab-filter-collision" class="px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+                  <span>Sedang Tabrakan / Bentrok</span>
+                </button>
+                <button onclick="window.app.setScheduleFilter('rescheduled')" id="tab-filter-rescheduled" class="px-3.5 py-2 rounded-xl text-xs font-bold transition">
+                  Pernah Ganti Hari
+                </button>
+              </div>
+            </div>
+
+            <!-- Daftar Kartu Jadwal Libur -->
+            <div id="schedules-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Di-render dinamis -->
+            </div>
+
+          </section>
+
+          <!-- ========================================== -->
+          <!-- VIEW 4: DATA TIM KARYAWAN & ADMIN PANEL    -->
+          <!-- ========================================== -->
+          <section id="view-employees" class="hidden max-w-6xl mx-auto space-y-5">
+
+            <!-- STATUS BAR AKSES ADMIN / PUBLIK -->
+            <div id="admin-access-banner" class="glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-l-blue-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <!-- Di-render dinamis berdasarkan state.isAdmin -->
+            </div>
+
+            <!-- PANEL KHUSUS ADMIN: PENGATURAN LOGO & NAMA WEBSITE + TAMBAH KARYAWAN -->
+            <div id="admin-only-panels" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              <!-- Panel 1: Ubah Logo & Nama Website -->
+              <div class="glass-card rounded-2xl p-5 space-y-4 border border-indigo-200/80">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-200/80">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                      <i class="fa-solid fa-paintbrush"></i>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="text-sm font-extrabold text-slate-900">Identitas & Logo Website</h3>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Admin</span>
+                      </div>
+                      <p class="text-[11px] text-slate-500">Ubah nama aplikasi, subjudul, dan gambar logo perusahaan</p>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Preview Identitas Website -->
+                <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/90 flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-3 min-w-0">
+                    <div id="settings-logo-preview" class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md overflow-hidden shrink-0">
+                      <i class="fa-solid fa-calendar-check text-lg"></i>
+                    </div>
+                    <div class="truncate">
+                      <span class="text-[10px] font-bold uppercase text-slate-400 block">Pratinjau Tampilan:</span>
+                      <p id="settings-name-preview" class="font-extrabold text-sm text-slate-900 truncate">JadwalKu</p>
+                      <p id="settings-subtitle-preview" class="text-xs text-slate-500 truncate">Booking Libur Anti-Bentrok</p>
+                    </div>
+                  </div>
+                  <button type="button" onclick="window.app.resetDefaultBranding()" class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 text-[11px] font-bold shrink-0 transition" title="Kembalikan Logo & Nama Standar">
+                    <i class="fa-solid fa-rotate-left mr-1"></i>Default
+                  </button>
+                </div>
+
+                <form id="form-site-settings" onsubmit="window.app.saveSiteSettings(event)" class="space-y-3.5">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Nama Website / Aplikasi <span class="text-rose-500">*</span></label>
+                      <input type="text" id="setting-input-name" required oninput="window.app.updateBrandingPreview()" placeholder="Cth: JadwalKu PT Maju" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Subjudul / Tagline</label>
+                      <input type="text" id="setting-input-subtitle" oninput="window.app.updateBrandingPreview()" placeholder="Cth: Divisi Operasional & Toko" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">URL Gambar Logo (Atau Upload File di Bawah)</label>
+                    <input type="text" id="setting-input-logo-url" oninput="window.app.updateBrandingPreview()" placeholder="https://contoh.com/logo.png atau otomatis dari upload" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                  </div>
+
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl bg-indigo-50/60 border border-indigo-100">
+                    <div class="text-xs">
+                      <span class="font-bold text-indigo-950 block"><i class="fa-solid fa-upload mr-1"></i>Upload Logo dari Perangkat</span>
+                      <span class="text-[11px] text-indigo-700">Format PNG/JPG/WebP (Otomatis disesuaikan ukurannya)</span>
+                    </div>
+                    <label class="cursor-pointer px-3.5 py-2 rounded-xl bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold text-xs shadow-sm transition text-center shrink-0">
+                      <span>Pilih File Gambar</span>
+                      <input type="file" id="setting-input-logo-file" accept="image/*" onchange="window.app.handleLogoUpload(event)" class="hidden" />
+                    </label>
+                  </div>
+
+                  <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition">
+                    <i class="fa-solid fa-floppy-disk mr-1.5"></i>Simpan Perubahan Logo & Nama Website
+                  </button>
+                </form>
+              </div>
+
+              <!-- Panel 2: Form Tambah Karyawan Baru (Khusus Admin) -->
+              <div class="glass-card rounded-2xl p-5 space-y-4 border border-blue-200/80">
+                <div class="flex items-center gap-3 pb-3 border-b border-slate-200/80">
+                  <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <i class="fa-solid fa-user-plus"></i>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-sm font-extrabold text-slate-900">Buat Data Karyawan Baru</h3>
+                      <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Admin</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500">Tambahkan anggota tim baru ke dalam sistem kalender libur</p>
+                  </div>
+                </div>
+
+                <form id="form-add-employee" onsubmit="window.app.submitNewEmployee(event)" class="space-y-3.5">
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Nama Lengkap Karyawan <span class="text-rose-500">*</span></label>
+                    <input type="text" id="emp-input-name" required placeholder="Cth: Hendra Gunawan" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Kode / NIK ID</label>
+                      <input type="text" id="emp-input-code" placeholder="EMP-07" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                      <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Divisi / Bagian <span class="text-rose-500">*</span></label>
+                      <input type="text" id="emp-input-dept" required placeholder="Cth: Operasional / Kasir" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Warna Identitas di Kalender</label>
+                    <div class="flex items-center gap-2.5 pt-1" id="emp-color-picker">
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#2563eb" checked class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-blue-600 block peer-checked:ring-4 peer-checked:ring-blue-200"></span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#059669" class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-emerald-600 block peer-checked:ring-4 peer-checked:ring-emerald-200"></span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#7c3aed" class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-violet-600 block peer-checked:ring-4 peer-checked:ring-violet-200"></span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#d97706" class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-amber-600 block peer-checked:ring-4 peer-checked:ring-amber-200"></span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#0891b2" class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-cyan-600 block peer-checked:ring-4 peer-checked:ring-cyan-200"></span>
+                      </label>
+                      <label class="cursor-pointer">
+                        <input type="radio" name="emp_color" value="#db2777" class="sr-only peer" />
+                        <span class="w-7 h-7 rounded-full bg-pink-600 block peer-checked:ring-4 peer-checked:ring-pink-200"></span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition">
+                    <i class="fa-solid fa-plus mr-1.5"></i>Simpan Karyawan Baru
+                  </button>
+                </form>
+              </div>
+
+            </div>
+
+            <!-- Daftar Karyawan & Ringkasan Libur -->
+            <div class="glass-card rounded-2xl p-5 space-y-4">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/80">
+                <div>
+                  <h3 class="text-base font-extrabold text-slate-900">Daftar Karyawan & Rekap Libur Bulan Ini</h3>
+                  <p id="emp-list-subtitle" class="text-xs text-slate-500">Klik tombol jadwal untuk melihat hari libur masing-masing karyawan</p>
+                </div>
+                <div class="flex items-center gap-2 self-start sm:self-auto">
+                  <button id="btn-reset-demo" onclick="window.app.resetDemoData()" class="hidden px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-[11px] transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i>Reset Data Simulasi
+                  </button>
+                </div>
+              </div>
+
+              <div id="employees-list-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <!-- Di-render dinamis -->
+              </div>
+            </div>
+
+          </section>
+
+        </main>
+
+        <!-- MOBILE FLOATING BOTTOM NAVIGATION (< 768px) -->
+        <nav id="mobile-bottom-nav" class="fixed bottom-3 left-3 right-3 h-16 glass-panel rounded-2xl px-2 items-center justify-around z-30 shadow-xl border border-slate-200/90">
+          <button onclick="window.app.switchTab('calendar')" id="nav-mobile-calendar" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition relative">
+            <i class="fa-regular fa-calendar-days text-base"></i>
+            <span class="text-[10px] font-bold mt-1">Kalender</span>
+            <span id="badge-mobile-calendar" class="hidden absolute top-0.5 right-2 w-4 h-4 rounded-full bg-rose-600 text-white text-[9px] font-extrabold flex items-center justify-center">!</span>
+          </button>
+
+          <button onclick="window.app.switchTab('booking')" id="nav-mobile-booking" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition">
+            <i class="fa-solid fa-calendar-plus text-base"></i>
+            <span class="text-[10px] font-bold mt-1">Booking</span>
+          </button>
+
+          <button onclick="window.app.switchTab('schedules')" id="nav-mobile-schedules" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition">
+            <i class="fa-solid fa-arrows-rotate text-base"></i>
+            <span class="text-[10px] font-bold mt-1">Ganti Hari</span>
+          </button>
+
+          <button onclick="window.app.switchTab('employees')" id="nav-mobile-employees" class="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition">
+            <i class="fa-solid fa-users text-base"></i>
+            <span class="text-[10px] font-bold mt-1">Data Tim</span>
+          </button>
+        </nav>
+
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 1: DETAIL TANGGAL KALENDER                                  -->
+    <!-- ================================================================= -->
+    <div id="modal-date-detail" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="glass-panel bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] flex flex-col">
+        <div class="flex items-start justify-between gap-3 pb-3 border-b border-slate-200">
+          <div>
+            <span id="modal-date-status-badge" class="text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">Status</span>
+            <h3 id="modal-date-title" class="text-lg font-extrabold text-slate-900 mt-1">Detail Tanggal</h3>
+          </div>
+          <button onclick="window.app.closeDateModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div id="modal-date-body" class="space-y-3 overflow-y-auto pr-1 flex-1">
+          <!-- Diisi dinamis -->
+        </div>
+
+        <div class="pt-3 border-t border-slate-200 flex items-center justify-between gap-2">
+          <button onclick="window.app.closeDateModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition">
+            Tutup
+          </button>
+          <button id="btn-modal-book-this-date" class="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+            <i class="fa-solid fa-calendar-plus"></i>
+            <span>Booking di Tanggal Ini</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 2: GANTI HARI LIBUR (RESCHEDULE)                            -->
+    <!-- ================================================================= -->
+    <div id="modal-reschedule" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="glass-panel bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+              <i class="fa-solid fa-arrows-rotate"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">Ganti Hari Libur (Reschedule)</h3>
+              <p id="reschedule-emp-subtitle" class="text-xs text-slate-500 font-semibold"></p>
+            </div>
+          </div>
+          <button onclick="window.app.closeRescheduleModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="form-reschedule" onsubmit="window.app.submitReschedule(event)" class="space-y-4">
+          <input type="hidden" id="reschedule-booking-id" />
+
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+            <span class="text-slate-400 font-bold uppercase text-[10px] block">Jadwal Libur Sebelumnya:</span>
+            <span id="reschedule-old-dates" class="font-extrabold text-slate-800"></span>
+          </div>
+
+          <!-- Pilih Mode 1 Hari atau Multi Hari -->
+          <div>
+            <label class="block text-[11px] font-extrabold uppercase text-slate-600 mb-1.5">Durasi Tanggal Baru</label>
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <button type="button" id="btn-resched-single" onclick="window.app.setRescheduleMode('single')" class="py-2 px-3 rounded-lg font-bold text-xs transition bg-white text-blue-600 shadow-sm">
+                1 Hari
+              </button>
+              <button type="button" id="btn-resched-multi" onclick="window.app.setRescheduleMode('multi')" class="py-2 px-3 rounded-lg font-bold text-xs transition text-slate-600">
+                Lebih dari 1 Hari
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Tanggal Libur Baru <span class="text-rose-500">*</span></label>
+              <input type="date" id="reschedule-start-date" required onchange="window.app.onRescheduleDateChange()" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div id="wrapper-reschedule-end" class="hidden">
+              <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Sampai Tanggal <span class="text-rose-500">*</span></label>
+              <input type="date" id="reschedule-end-date" onchange="window.app.checkRescheduleConflicts()" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <!-- Live Detektor Bentrok Tanggal Baru -->
+          <div id="reschedule-conflict-box" class="rounded-xl p-3.5 border text-xs"></div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Kategori Libur</label>
+            <select id="reschedule-leave-type" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-800">
+              <option value="Libur Rutin / Off">Libur Rutin / Off Mingguan</option>
+              <option value="Cuti Tahunan">Cuti Tahunan</option>
+              <option value="Tukar Jaga / Shift">Tukar Jaga / Ganti Shift</option>
+              <option value="Izin Keperluan">Izin Keperluan Keluarga / Pribadi</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Alasan Ganti Hari / Catatan</label>
+            <input type="text" id="reschedule-reason" placeholder="Contoh: Pindah tanggal agar tidak tabrakan..." class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-800" />
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-2 border-t border-slate-200">
+            <button type="button" onclick="window.app.closeRescheduleModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+              Batal
+            </button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-500/20">
+              <i class="fa-solid fa-check mr-1.5"></i>Simpan Tanggal Baru
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 3: KONFIRMASI HAPUS / BATALKAN                              -->
+    <!-- ================================================================= -->
+    <div id="modal-confirm-delete" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="glass-panel bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto text-xl">
+          <i class="fa-solid fa-trash-can"></i>
+        </div>
+        <div>
+          <h3 id="confirm-modal-title" class="text-base font-extrabold text-slate-900">Batalkan Jadwal Libur?</h3>
+          <p id="confirm-modal-desc" class="text-xs text-slate-500 mt-1">Jadwal libur ini akan dihapus dari kalender.</p>
+        </div>
+        <div class="flex items-center justify-center gap-2 pt-2">
+          <button onclick="window.app.closeConfirmModal()" class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+            Tidak Jadi
+          </button>
+          <button id="btn-confirm-yes" class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md shadow-rose-600/20">
+            Ya, Batalkan
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 4: LOGIN & PENGATURAN AKSES ADMIN                           -->
+    <!-- ================================================================= -->
+    <div id="modal-auth" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="glass-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">Akses Admin & Koordinator</h3>
+              <p class="text-xs text-slate-500">Kelola Data Karyawan, Logo & Nama Website</p>
+            </div>
+          </div>
+          <button onclick="window.app.closeAuthModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-3">
+          <i class="fa-solid fa-unlock-keyhole text-emerald-600 mt-0.5"></i>
+          <div class="text-xs text-emerald-900">
+            <p class="font-extrabold">Karyawan Biasa Tidak Perlu Login</p>
+            <p class="text-[11px] text-emerald-700 mt-0.5">Untuk melihat kalender, booking libur, dan ganti hari libur bisa langsung dilakukan tanpa login. Login di bawah khusus untuk <strong>Admin</strong>.</p>
+          </div>
+        </div>
+
+        <!-- Box Jika Admin Sudah Login -->
+        <div id="auth-logged-in-box" class="hidden p-4 rounded-2xl bg-indigo-50 border border-indigo-200 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-600 text-white">Sesi Admin Aktif</span>
+              <p id="auth-active-email" class="text-sm font-extrabold text-indigo-950 mt-1">admin@kantor.com</p>
+            </div>
+            <i class="fa-solid fa-circle-check text-2xl text-indigo-600"></i>
+          </div>
+          <p class="text-xs text-indigo-800">Anda memiliki akses penuh untuk mengubah Logo & Nama Website, serta membuat, mengedit, dan menghapus data karyawan.</p>
+          <div class="flex items-center gap-2 pt-1">
+            <button type="button" onclick="window.app.goToAdminPanel()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition">
+              Buka Panel Admin
+            </button>
+            <button type="button" onclick="window.app.handleAdminLogout()" class="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition">
+              <i class="fa-solid fa-right-from-bracket mr-1"></i>Logout
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Login Admin -->
+        <form id="form-admin-login" onsubmit="window.app.handleAdminLogin(event)" class="space-y-3 pt-1">
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Email Admin</label>
+            <input type="email" id="admin-email" value="admin@kantor.com" required placeholder="admin@kantor.com" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Password Admin</label>
+            <input type="password" id="admin-password" value="admin123" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <p id="demo-login-hint" class="text-[11px] text-slate-500 bg-slate-100 p-2.5 rounded-xl">
+            <i class="fa-solid fa-circle-info text-blue-600 mr-1"></i><strong>Akun Demo:</strong> Gunakan <code>admin@kantor.com</code> / <code>admin123</code> atau langsung klik tombol masuk di bawah.
+          </p>
+          <div class="flex items-center justify-between gap-2 pt-2">
+            <button type="button" onclick="window.app.closeAuthModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+              Batal
+            </button>
+            <button type="submit" class="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/20">
+              <i class="fa-solid fa-right-to-bracket mr-1.5"></i>Masuk sebagai Admin
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODAL 5: EDIT DATA KARYAWAN (KHUSUS ADMIN)                        -->
+    <!-- ================================================================= -->
+    <div id="modal-edit-employee" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="glass-panel bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+              <i class="fa-solid fa-user-pen"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">Edit Data Karyawan</h3>
+              <p class="text-xs text-slate-500">Perubahan otomatis disinkronkan ke kalender</p>
+            </div>
+          </div>
+          <button onclick="window.app.closeEditEmployeeModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="form-edit-employee" onsubmit="window.app.submitEditEmployee(event)" class="space-y-3.5">
+          <input type="hidden" id="edit-emp-id" />
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Nama Lengkap Karyawan <span class="text-rose-500">*</span></label>
+            <input type="text" id="edit-emp-name" required class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Kode / ID Karyawan</label>
+              <input type="text" id="edit-emp-code" class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Divisi / Bagian <span class="text-rose-500">*</span></label>
+              <input type="text" id="edit-emp-dept" required class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Warna Badge di Kalender</label>
+            <div class="flex items-center gap-2.5 pt-1" id="edit-emp-color-picker">
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#2563eb" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-blue-600 block peer-checked:ring-4 peer-checked:ring-blue-200"></span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#059669" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-emerald-600 block peer-checked:ring-4 peer-checked:ring-emerald-200"></span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#7c3aed" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-violet-600 block peer-checked:ring-4 peer-checked:ring-violet-200"></span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#d97706" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-amber-600 block peer-checked:ring-4 peer-checked:ring-amber-200"></span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#0891b2" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-cyan-600 block peer-checked:ring-4 peer-checked:ring-cyan-200"></span>
+              </label>
+              <label class="cursor-pointer">
+                <input type="radio" name="edit_emp_color" value="#db2777" class="sr-only peer" />
+                <span class="w-7 h-7 rounded-full bg-pink-600 block peer-checked:ring-4 peer-checked:ring-pink-200"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+            <button type="button" onclick="window.app.closeEditEmployeeModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">
+              Batal
+            </button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs shadow-md shadow-blue-500/20">
+              <i class="fa-solid fa-check mr-1.5"></i>Simpan Perubahan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER (NO ALERT()) -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[9999999] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-3 sm:px-0"></div>
+
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- JAVASCRIPT MODULE & SUPABASE INTEGRATION                          -->
+  <!-- ================================================================= -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+    // KONFIGURASI APLIKASI
+    const IS_PREVIEW = true; // Set false JIKA SUDAH TERHUBUNG KE SUPABASE
+    // PASTE SUPABASE URL & ANON KEY ANDA DI SINI
+    const SUPABASE_URL = "URL_SUPABASE_ANDA";
+    const SUPABASE_ANON_KEY = "ANON_KEY_ANDA";
+
+    // Inisialisasi Klien Supabase jika IS_PREVIEW === false
+    let supabase = null;
+    if (!IS_PREVIEW && SUPABASE_URL !== "URL_SUPABASE_ANDA" && SUPABASE_ANON_KEY !== "ANON_KEY_ANDA") {
+      try {
+        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      } catch (err) {
+        console.error("Gagal menginisialisasi Supabase:", err);
+      }
+    }
+
+    // Key LocalStorage untuk Mode Preview
+    const STORAGE_EMP_KEY = 'jadwalku_employees_v1';
+    const STORAGE_BOOKING_KEY = 'jadwalku_bookings_v1';
+    const STORAGE_SETTINGS_KEY = 'jadwalku_settings_v1';
+    const STORAGE_ADMIN_SESSION_KEY = 'jadwalku_admin_session_v1';
+
+    const DEFAULT_SETTINGS = {
+      id: 'main',
+      site_name: 'JadwalKu',
+      site_subtitle: 'Booking Libur Anti-Bentrok',
+      logo_url: ''
+    };
+
+    // State Global Aplikasi
+    const state = {
+      currentTab: 'calendar',
+      currentYear: new Date().getFullYear(),
+      currentMonth: new Date().getMonth(), // 0 - 11
+      durationMode: 'single', // 'single' | 'multi'
+      rescheduleMode: 'single',
+      scheduleFilter: 'all', // 'all' | 'collision' | 'rescheduled'
+      isAdmin: false,
+      adminEmail: '',
+      settings: { ...DEFAULT_SETTINGS },
+      employees: [],
+      bookings: []
+    };
+
+    const MONTH_NAMES = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const DAY_SHORT_NAMES = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+    // =================================================================
+    // HELPER TANGGAL (YYYY-MM-DD LOKAL TANPA GESER TIMEZONE)
+    // =================================================================
+    function formatDateYMD(year, monthIndex, day) {
+      const m = String(monthIndex + 1).padStart(2, '0');
+      const d = String(day).padStart(2, '0');
+      return `${year}-${m}-${d}`;
+    }
+
+    function parseYMD(ymdStr) {
+      const [y, m, d] = ymdStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function formatDisplayDate(ymdStr, short = false) {
+      if (!ymdStr) return '-';
+      const [y, m, d] = ymdStr.split('-').map(Number);
+      const monthName = short ? MONTH_NAMES[m - 1].slice(0, 3) : MONTH_NAMES[m - 1];
+      return `${d} ${monthName} ${y}`;
+    }
+
+    function getDatesInRange(startYMD, endYMD) {
+      const dates = [];
+      const curr = parseYMD(startYMD);
+      const end = parseYMD(endYMD || startYMD);
+      if (curr > end) return [startYMD];
+      while (curr <= end) {
+        dates.push(formatDateYMD(curr.getFullYear(), curr.getMonth(), curr.getDate()));
+        curr.setDate(curr.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function calculateTotalDays(startYMD, endYMD) {
+      return getDatesInRange(startYMD, endYMD).length;
+    }
+
+    // =================================================================
+    // AUTO SETUP DATABASE & DATA AWAL SIMULASI (PREVIEW MODE)
+    // =================================================================
+    function generateInitialDemoData() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = now.getMonth();
+
+      const demoEmployees = [
+        { id: 'emp-1', employee_code: 'EMP-01', name: 'Budi Santoso', department: 'Operasional', pin_code: '1111', badge_color: '#2563eb' },
+        { id: 'emp-2', employee_code: 'EMP-02', name: 'Siti Aminah', department: 'Kasir & Layanan', pin_code: '2222', badge_color: '#059669' },
+        { id: 'emp-3', employee_code: 'EMP-03', name: 'Rizky Pratama', department: 'Operasional', pin_code: '3333', badge_color: '#7c3aed' },
+        { id: 'emp-4', employee_code: 'EMP-04', name: 'Dewi Lestari', department: 'Admin & Gudang', pin_code: '4444', badge_color: '#d97706' },
+        { id: 'emp-5', employee_code: 'EMP-05', name: 'Andi Wijaya', department: 'Teknisi', pin_code: '5555', badge_color: '#0891b2' },
+        { id: 'emp-6', employee_code: 'EMP-06', name: 'Nisa Putri', department: 'Kasir & Layanan', pin_code: '6666', badge_color: '#db2777' }
+      ];
+
+      // Buat jadwal di bulan berjalan (termasuk 1 hari, multi-hari, dan tanggal yang sengaja tabrakan!)
+      const demoBookings = [
+        // Tanggal 5: Aman (1 orang)
+        {
+          id: 'bk-101',
+          employee_id: 'emp-1',
+          employee_name: 'Budi Santoso',
+          department: 'Operasional',
+          start_date: formatDateYMD(y, m, 5),
+          end_date: formatDateYMD(y, m, 5),
+          total_days: 1,
+          leave_type: 'Libur Rutin / Off',
+          reason: 'Libur mingguan rutin',
+          is_rescheduled: false
+        },
+        // Tanggal 10 - 12: Multi-hari (3 Hari) oleh Siti Aminah
+        // Tanggal 11: TABRAKAN dengan Rizky Pratama!
+        {
+          id: 'bk-102',
+          employee_id: 'emp-2',
+          employee_name: 'Siti Aminah',
+          department: 'Kasir & Layanan',
+          start_date: formatDateYMD(y, m, 10),
+          end_date: formatDateYMD(y, m, 12),
+          total_days: 3,
+          leave_type: 'Cuti Tahunan',
+          reason: 'Acara keluarga di Bandung (3 Hari)',
+          is_rescheduled: false
+        },
+        {
+          id: 'bk-103',
+          employee_id: 'emp-3',
+          employee_name: 'Rizky Pratama',
+          department: 'Operasional',
+          start_date: formatDateYMD(y, m, 11),
+          end_date: formatDateYMD(y, m, 11),
+          total_days: 1,
+          leave_type: 'Libur Rutin / Off',
+          reason: 'Jatah off mingguan',
+          is_rescheduled: false
+        },
+        // Tanggal 18: TABRAKAN 3 ORANG SEKALIGUS (Dewi, Andi, Nisa)
+        {
+          id: 'bk-104',
+          employee_id: 'emp-4',
+          employee_name: 'Dewi Lestari',
+          department: 'Admin & Gudang',
+          start_date: formatDateYMD(y, m, 18),
+          end_date: formatDateYMD(y, m, 19),
+          total_days: 2,
+          leave_type: 'Izin Keperluan',
+          reason: 'Mengurus dokumen & perpanjangan STNK',
+          is_rescheduled: false
+        },
+        {
+          id: 'bk-105',
+          employee_id: 'emp-5',
+          employee_name: 'Andi Wijaya',
+          department: 'Teknisi',
+          start_date: formatDateYMD(y, m, 18),
+          end_date: formatDateYMD(y, m, 18),
+          total_days: 1,
+          leave_type: 'Libur Rutin / Off',
+          reason: 'Libur rutin',
+          is_rescheduled: false
+        },
+        {
+          id: 'bk-106',
+          employee_id: 'emp-6',
+          employee_name: 'Nisa Putri',
+          department: 'Kasir & Layanan',
+          start_date: formatDateYMD(y, m, 18),
+          end_date: formatDateYMD(y, m, 18),
+          total_days: 1,
+          leave_type: 'Tukar Jaga / Shift',
+          reason: 'Request libur bareng',
+          is_rescheduled: false
+        },
+        // Tanggal 24: Aman (1 orang, pernah ganti jadwal)
+        {
+          id: 'bk-107',
+          employee_id: 'emp-1',
+          employee_name: 'Budi Santoso',
+          department: 'Operasional',
+          start_date: formatDateYMD(y, m, 24),
+          end_date: formatDateYMD(y, m, 24),
+          total_days: 1,
+          leave_type: 'Libur Rutin / Off',
+          reason: 'Sudah digeser dari tanggal 18 agar tidak bentrok',
+          is_rescheduled: true
+        }
+      ];
+
+      return { demoEmployees, demoBookings };
+    }
+
+    async function autoSetupDatabase() {
+      const dbIndicator = document.getElementById('db-mode-indicator');
+
+      // Pulihkan sesi Admin jika sebelumnya sudah login
+      const savedAdminEmail = localStorage.getItem(STORAGE_ADMIN_SESSION_KEY);
+      if (savedAdminEmail) {
+        state.isAdmin = true;
+        state.adminEmail = savedAdminEmail;
+      }
+
+      if (IS_PREVIEW || !supabase) {
+        if (dbIndicator) {
+          dbIndicator.innerHTML = `<i class="fa-solid fa-bolt text-amber-500 mr-1"></i>Mode Simulasi Aktif`;
+        }
+        const savedEmp = localStorage.getItem(STORAGE_EMP_KEY);
+        const savedBook = localStorage.getItem(STORAGE_BOOKING_KEY);
+        const savedSettings = localStorage.getItem(STORAGE_SETTINGS_KEY);
+
+        if (savedSettings) {
+          try {
+            state.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) };
+          } catch (e) {
+            state.settings = { ...DEFAULT_SETTINGS };
+          }
+        }
+
+        if (savedEmp && savedBook) {
+          state.employees = JSON.parse(savedEmp);
+          state.bookings = JSON.parse(savedBook);
+        } else {
+          const { demoEmployees, demoBookings } = generateInitialDemoData();
+          state.employees = demoEmployees;
+          state.bookings = demoBookings;
+          savePreviewState();
+        }
+        return;
+      }
+
+      // JIKA IS_PREVIEW === false (TERHUBUNG KE SUPABASE PRODUCTION)
+      if (dbIndicator) {
+        dbIndicator.innerHTML = `<i class="fa-solid fa-cloud text-emerald-500 mr-1"></i>Supabase Live`;
+      }
+
+      try {
+        // Cek sesi Supabase Auth
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          state.isAdmin = true;
+          state.adminEmail = sessionData.session.user.email;
+        }
+
+        const [
+          { data: settingsData },
+          { data: empData, error: empErr },
+          { data: bookData, error: bookErr }
+        ] = await Promise.all([
+          supabase.from('app_settings').select('*').eq('id', 'main').maybeSingle(),
+          supabase.from('employees').select('*').order('name', { ascending: true }),
+          supabase.from('leave_bookings').select('*').order('start_date', { ascending: true })
+        ]);
+
+        if (settingsData) {
+          state.settings = { ...DEFAULT_SETTINGS, ...settingsData };
+        }
+        if (empErr) throw empErr;
+        if (bookErr) throw bookErr;
+
+        state.employees = empData || [];
+        state.bookings = bookData || [];
+      } catch (err) {
+        console.error("Error memuat data Supabase:", err);
+        showToast("Gagal memuat dari Supabase. Pastikan tabel SQL sudah dijalankan.", "error");
+      }
+    }
+
+    function savePreviewState() {
+      if (IS_PREVIEW) {
+        localStorage.setItem(STORAGE_EMP_KEY, JSON.stringify(state.employees));
+        localStorage.setItem(STORAGE_BOOKING_KEY, JSON.stringify(state.bookings));
+        localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(state.settings));
+      }
+    }
+
+    // =================================================================
+    // PENGATURAN IDENTITAS WEBSITE (NAMA & LOGO DINAMIS)
+    // =================================================================
+    function renderLogoHTML(logoUrl, iconSizeClass = 'text-xl') {
+      if (logoUrl && logoUrl.trim() !== '') {
+        return `<img src="${logoUrl}" alt="Logo" class="w-full h-full object-cover" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\'fa-solid fa-calendar-check ${iconSizeClass}\\'></i>';" />`;
+      }
+      return `<i class="fa-solid fa-calendar-check ${iconSizeClass}"></i>`;
+    }
+
+    function applySiteSettingsToDOM() {
+      const siteName = state.settings.site_name || DEFAULT_SETTINGS.site_name;
+      const siteSubtitle = state.settings.site_subtitle || DEFAULT_SETTINGS.site_subtitle;
+      const logoUrl = state.settings.logo_url || '';
+
+      document.title = `${siteName} — ${siteSubtitle}`;
+
+      const nameEl = document.getElementById('brand-site-name');
+      const subEl = document.getElementById('brand-site-subtitle');
+      const logoDesktop = document.getElementById('brand-logo-desktop');
+      const logoMobile = document.getElementById('brand-logo-mobile');
+
+      if (nameEl) nameEl.textContent = siteName;
+      if (subEl) subEl.textContent = siteSubtitle;
+      if (logoDesktop) logoDesktop.innerHTML = renderLogoHTML(logoUrl, 'text-xl');
+      if (logoMobile) logoMobile.innerHTML = renderLogoHTML(logoUrl, 'text-sm');
+
+      // Isi form pengaturan admin jika sedang tidak fokus mengetik
+      const inputName = document.getElementById('setting-input-name');
+      const inputSub = document.getElementById('setting-input-subtitle');
+      const inputLogo = document.getElementById('setting-input-logo-url');
+
+      if (inputName && document.activeElement !== inputName) inputName.value = siteName;
+      if (inputSub && document.activeElement !== inputSub) inputSub.value = siteSubtitle;
+      if (inputLogo && document.activeElement !== inputLogo) inputLogo.value = logoUrl;
+
+      updateBrandingPreview();
+    }
+
+    function updateBrandingPreview() {
+      const nameVal = document.getElementById('setting-input-name')?.value.trim() || DEFAULT_SETTINGS.site_name;
+      const subVal = document.getElementById('setting-input-subtitle')?.value.trim() || DEFAULT_SETTINGS.site_subtitle;
+      const logoVal = document.getElementById('setting-input-logo-url')?.value.trim() || '';
+
+      const prevName = document.getElementById('settings-name-preview');
+      const prevSub = document.getElementById('settings-subtitle-preview');
+      const prevLogo = document.getElementById('settings-logo-preview');
+
+      if (prevName) prevName.textContent = nameVal;
+      if (prevSub) prevSub.textContent = subVal;
+      if (prevLogo) prevLogo.innerHTML = renderLogoHTML(logoVal, 'text-lg');
+    }
+
+    function handleLogoUpload(event) {
+      if (!state.isAdmin) {
+        showToast("Hanya Admin yang dapat mengubah logo website!", "error");
+        return;
+      }
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Kompres & resize gambar ke ukuran optimal (maks 160x160) agar ringan disimpan di DB/LocalStorage
+          const canvas = document.createElement('canvas');
+          const maxDim = 160;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            if (w > maxDim) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            }
+          } else {
+            if (h > maxDim) {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/png', 0.88);
+
+          const logoInput = document.getElementById('setting-input-logo-url');
+          if (logoInput) {
+            logoInput.value = dataUrl;
+            updateBrandingPreview();
+            showToast("Gambar logo siap disimpan. Klik 'Simpan Perubahan Logo & Nama Website'.", "info");
+          }
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function saveSiteSettings(e) {
+      e.preventDefault();
+      if (!state.isAdmin) {
+        showToast("Akses ditolak! Silakan login sebagai Admin terlebih dahulu.", "error");
+        openAuthModal();
+        return;
+      }
+
+      const site_name = document.getElementById('setting-input-name').value.trim() || DEFAULT_SETTINGS.site_name;
+      const site_subtitle = document.getElementById('setting-input-subtitle').value.trim() || DEFAULT_SETTINGS.site_subtitle;
+      const logo_url = document.getElementById('setting-input-logo-url').value.trim();
+
+      const updated = {
+        id: 'main',
+        site_name,
+        site_subtitle,
+        logo_url
+      };
+
+      if (IS_PREVIEW || !supabase) {
+        state.settings = updated;
+        savePreviewState();
+      } else {
+        const { error } = await supabase.from('app_settings').upsert([updated], { onConflict: 'id' });
+        if (error) {
+          showToast("Gagal menyimpan pengaturan ke Supabase: " + error.message, "error");
+          return;
+        }
+        state.settings = updated;
+      }
+
+      applySiteSettingsToDOM();
+      showToast(`Identitas website "${site_name}" dan logo berhasil diperbarui!`, "success");
+    }
+
+    async function resetDefaultBranding() {
+      if (!state.isAdmin) return;
+      document.getElementById('setting-input-name').value = DEFAULT_SETTINGS.site_name;
+      document.getElementById('setting-input-subtitle').value = DEFAULT_SETTINGS.site_subtitle;
+      document.getElementById('setting-input-logo-url').value = '';
+      updateBrandingPreview();
+      showToast("Dikembalikan ke pratinjau default. Klik Simpan untuk menerapkan.", "info");
+    }
+
+    // =================================================================
+    // LOGIKA INTI: PEMETAAN TANGGAL & DETEKSI TABRAKAN (> 1 ORANG)
+    // =================================================================
+    function getBookingsForDate(ymdStr, deptFilter = 'ALL', excludeBookingId = null) {
+      return state.bookings.filter(b => {
+        if (excludeBookingId && b.id === excludeBookingId) return false;
+        if (deptFilter !== 'ALL' && b.department !== deptFilter) return false;
+        return ymdStr >= b.start_date && ymdStr <= b.end_date;
+      });
+    }
+
+    function getEmployeeColor(empId) {
+      const emp = state.employees.find(e => e.id === empId);
+      return emp?.badge_color || '#2563eb';
+    }
+
+    // Mencari apakah suatu booking memiliki tanggal yang bertabrakan dengan teman lain
+    function getBookingCollisions(booking) {
+      const dates = getDatesInRange(booking.start_date, booking.end_date);
+      const collisions = []; // [{ date, others: [] }]
+
+      dates.forEach(d => {
+        const othersOnDate = state.bookings.filter(
+          other => other.id !== booking.id && d >= other.start_date && d <= other.end_date
+        );
+        if (othersOnDate.length > 0) {
+          collisions.push({
+            date: d,
+            others: othersOnDate
+          });
+        }
+      });
+
+      return collisions;
+    }
+
+    // =================================================================
+    // RENDER KALENDER UTAMA & INDIKATOR BENTROK
+    // =================================================================
+    function renderCalendar() {
+      const year = state.currentYear;
+      const month = state.currentMonth;
+      const deptFilter = document.getElementById('filter-calendar-dept')?.value || 'ALL';
+
+      // Update Label Bulan & Tahun
+      document.getElementById('calendar-month-label').textContent = `${MONTH_NAMES[month]} ${year}`;
+
+      // Hitung jumlah hari dalam bulan & hari pertama
+      const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 (Min) - 6 (Sab)
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      const gridEl = document.getElementById('calendar-days-grid');
+      gridEl.innerHTML = '';
+
+      const todayNow = new Date();
+      const todayYMD = formatDateYMD(todayNow.getFullYear(), todayNow.getMonth(), todayNow.getDate());
+
+      let safeDaysCount = 0;
+      let collisionDaysList = []; // Menyimpan detail tanggal yang tabrakan di bulan ini
+
+      // Slot kosong sebelum tanggal 1 (disembunyikan pada tampilan 2 kolom HP agar langsung mulai dari tanggal 1)
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'hidden sm:block min-h-[120px] rounded-2xl bg-slate-100/40 border border-slate-200/40';
+        gridEl.appendChild(emptyCell);
+      }
+
+      // Render setiap tanggal 1 s/d akhir bulan
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateYMD = formatDateYMD(year, month, day);
+        const dayOfWeekIndex = new Date(year, month, day).getDay();
+        const dayShortName = DAY_SHORT_NAMES[dayOfWeekIndex];
+        const dayBookings = getBookingsForDate(dateYMD, deptFilter);
+        const count = dayBookings.length;
+        const isToday = dateYMD === todayYMD;
+
+        if (count === 1) {
+          safeDaysCount++;
+        } else if (count > 1) {
+          collisionDaysList.push({
+            dateYMD,
+            day,
+            bookings: dayBookings
+          });
+        }
+
+        const cell = document.createElement('div');
+        cell.onclick = () => openDateModal(dateYMD);
+
+        // Tentukan kelas warna berdasarkan jumlah orang yang libur
+        let cellStyleClass = 'bg-white/90 hover:bg-white border border-slate-200/90';
+        let statusBadgeHTML = '';
+
+        if (count === 1) {
+          cellStyleClass = 'safe-leave-cell';
+          statusBadgeHTML = `
+            <span class="px-1.5 py-0.5 rounded-md bg-emerald-600 text-white text-[9px] sm:text-[10px] font-extrabold tracking-tight inline-flex items-center gap-1 shrink-0">
+              <i class="fa-solid fa-check text-[8px]"></i>
+              <span>1 Libur</span>
+            </span>
+          `;
+        } else if (count > 1) {
+          // TANGGAL BENTROK / TABRAKAN: Warna merah menyala & badge peringatan khusus!
+          cellStyleClass = 'collision-cell pulse-collision';
+          statusBadgeHTML = `
+            <span class="px-1.5 py-0.5 rounded-md bg-rose-600 text-white text-[9px] sm:text-[10px] font-extrabold tracking-tight inline-flex items-center gap-1 shadow-sm shrink-0">
+              <i class="fa-solid fa-triangle-exclamation text-[8px]"></i>
+              <span>Bentrok: ${count}</span>
+            </span>
+          `;
+        }
+
+        // Daftar chip nama karyawan yang libur di tanggal ini (TANPA TRUNCATE agar terbaca utuh)
+        let chipsHTML = '';
+        dayBookings.forEach(bk => {
+          const color = getEmployeeColor(bk.employee_id);
+          const isMulti = bk.total_days > 1;
+          chipsHTML += `
+            <div class="emp-calendar-chip w-full px-2 py-1.5 text-[11px] rounded-lg text-white font-bold shadow-sm flex flex-col gap-0.5" style="background-color: ${ count > 1 ? '#e11d48' : color };">
+              <div class="flex items-start justify-between gap-1">
+                <span class="leading-tight break-words">${bk.employee_name}</span>
+                ${isMulti ? `<span class="text-[9px] font-extrabold px-1 py-0.2 rounded bg-black/25 shrink-0">${bk.total_days}h</span>` : ''}
+              </div>
+              <span class="text-[9.5px] font-medium text-white/90 sm:hidden">${bk.department}</span>
+            </div>
+          `;
+        });
+
+        const dayNameBadge = `<span class="sm:hidden text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded ${dayOfWeekIndex === 0 ? 'bg-rose-100 text-rose-600' : dayOfWeekIndex === 6 ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}">${dayShortName}</span>`;
+
+        cell.className = `h-auto min-h-[100px] sm:min-h-[125px] rounded-xl sm:rounded-2xl p-2.5 flex flex-col justify-between cursor-pointer transition-all group ${cellStyleClass}`;
+        cell.innerHTML = `
+          <div>
+            <div class="flex flex-wrap items-center justify-between gap-1 mb-1.5">
+              <div class="flex items-center gap-1">
+                <span class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg flex items-center justify-center text-xs sm:text-sm font-extrabold ${
+                  isToday
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : count > 1
+                    ? 'bg-rose-600/15 text-rose-900'
+                    : dayOfWeekIndex === 0
+                    ? 'text-rose-600'
+                    : 'text-slate-700'
+                }">
+                  ${day}
+                </span>
+                ${dayNameBadge}
+              </div>
+              ${statusBadgeHTML}
+            </div>
+
+            <div class="space-y-1">
+              ${chipsHTML}
+            </div>
+          </div>
+
+          <div class="mt-1.5 pt-1 flex items-center justify-between">
+            ${
+              count === 0
+                ? `<span class="opacity-0 group-hover:opacity-100 text-[10px] font-bold text-blue-600 transition flex items-center gap-1"><i class="fa-solid fa-plus"></i> Booking</span>`
+                : count > 1
+                ? `<span class="text-[9.5px] sm:text-[10px] font-extrabold text-rose-800 flex items-center gap-1 leading-tight"><i class="fa-solid fa-bell shrink-0"></i> <span>Klik Ganti Hari</span></span>`
+                : `<span class="text-[9.5px] sm:text-[10px] font-semibold text-emerald-800">Aman</span>`
+            }
+          </div>
+        `;
+
+        gridEl.appendChild(cell);
+      }
+
+      // Update Statistik & Banner Notifikasi Bentrok di Atas Kalender
+      updateCollisionAlertsAndStats(collisionDaysList, safeDaysCount);
+    }
+
+    function updateCollisionAlertsAndStats(collisionDaysList, safeDaysCount) {
+      const year = state.currentYear;
+      const month = state.currentMonth;
+      const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+      // Hitung jumlah booking yang aktif pada bulan ini
+      const activeBookingsThisMonth = state.bookings.filter(
+        b => b.start_date.startsWith(monthPrefix) || b.end_date.startsWith(monthPrefix)
+      );
+
+      document.getElementById('stat-total-bookings').textContent = `${activeBookingsThisMonth.length} Jadwal`;
+      document.getElementById('stat-safe-days').textContent = `${safeDaysCount} Tanggal`;
+      document.getElementById('stat-collision-days').textContent = `${collisionDaysList.length} Tanggal`;
+
+      const alertBanner = document.getElementById('collision-alert-banner');
+      const safeBanner = document.getElementById('safe-alert-banner');
+      const chipsContainer = document.getElementById('collision-dates-chips');
+      const sidebarBox = document.getElementById('sidebar-collision-box');
+      const badgeDesktop = document.getElementById('badge-nav-calendar');
+      const badgeMobile = document.getElementById('badge-mobile-calendar');
+      const badgeSchedules = document.getElementById('badge-nav-schedules');
+
+      if (badgeSchedules) {
+        badgeSchedules.textContent = state.bookings.length;
+      }
+
+      if (collisionDaysList.length > 0) {
+        alertBanner.classList.remove('hidden');
+        safeBanner.classList.add('hidden');
+
+        document.getElementById('collision-banner-title').textContent =
+          `Perhatian! Ada ${collisionDaysList.length} Tanggal Libur yang Tabrakan di Bulan ${MONTH_NAMES[month]} ${year}`;
+
+        chipsContainer.innerHTML = collisionDaysList.map(item => {
+          const names = item.bookings.map(b => b.employee_name).join(', ');
+          return `
+            <button onclick="window.app.openDateModal('${item.dateYMD}')" class="px-3 py-1.5 rounded-xl bg-white hover:bg-rose-100 text-rose-900 border border-rose-300 text-xs font-bold shadow-sm transition flex items-center gap-2">
+              <span class="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold">${item.day} ${MONTH_NAMES[month].slice(0, 3)}</span>
+              <span>${names} (${item.bookings.length} Orang)</span>
+            </button>
+          `;
+        }).join('');
+
+        // Update Sidebar Alert
+        if (sidebarBox) {
+          sidebarBox.className = 'p-3.5 rounded-2xl bg-rose-50 border border-rose-200 cursor-pointer hover:bg-rose-100/70 transition';
+          sidebarBox.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-bell text-xs"></i>
+              </div>
+              <div>
+                <p class="text-xs font-extrabold text-rose-950">${collisionDaysList.length} Tanggal Tabrakan!</p>
+                <p class="text-[11px] text-rose-700">Perlu koordinasi ganti hari</p>
+              </div>
+            </div>
+          `;
+        }
+
+        if (badgeDesktop) {
+          badgeDesktop.textContent = `${collisionDaysList.length} Bentrok`;
+          badgeDesktop.classList.remove('hidden');
+        }
+        if (badgeMobile) {
+          badgeMobile.textContent = collisionDaysList.length;
+          badgeMobile.classList.remove('hidden');
+        }
+      } else {
+        alertBanner.classList.add('hidden');
+        safeBanner.classList.remove('hidden');
+
+        if (sidebarBox) {
+          sidebarBox.className = 'p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 cursor-pointer';
+          sidebarBox.innerHTML = `
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-check text-xs"></i>
+              </div>
+              <div>
+                <p class="text-xs font-extrabold text-emerald-950">Jadwal Bulan Ini Aman</p>
+                <p class="text-[11px] text-emerald-700">0 tanggal tabrakan</p>
+              </div>
+            </div>
+          `;
+        }
+
+        if (badgeDesktop) badgeDesktop.classList.add('hidden');
+        if (badgeMobile) badgeMobile.classList.add('hidden');
+      }
+    }
+
+    // =================================================================
+    // MODAL DETAIL TANGGAL KALENDER
+    // =================================================================
+    function openDateModal(dateYMD) {
+      const modal = document.getElementById('modal-date-detail');
+      const titleEl = document.getElementById('modal-date-title');
+      const badgeEl = document.getElementById('modal-date-status-badge');
+      const bodyEl = document.getElementById('modal-date-body');
+      const bookBtn = document.getElementById('btn-modal-book-this-date');
+
+      const bookingsOnDate = getBookingsForDate(dateYMD);
+      const count = bookingsOnDate.length;
+
+      titleEl.textContent = `Tanggal ${formatDisplayDate(dateYMD)}`;
+      bookBtn.onclick = () => {
+        closeDateModal();
+        openQuickBookingModal(dateYMD);
+      };
+
+      if (count === 0) {
+        badgeEl.className = 'text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700';
+        badgeEl.textContent = 'Tanggal Kosong • Aman Diambil';
+        bodyEl.innerHTML = `
+          <div class="text-center py-8 px-4 rounded-2xl bg-slate-50 border border-dashed border-slate-300 space-y-2">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-lg">
+              <i class="fa-regular fa-calendar-check"></i>
+            </div>
+            <p class="text-sm font-bold text-slate-800">Belum Ada Karyawan yang Libur</p>
+            <p class="text-xs text-slate-500">Tanggal ini masih kosong dan sangat aman untuk diajukan sebagai hari libur Anda.</p>
+          </div>
+        `;
+      } else {
+        if (count === 1) {
+          badgeEl.className = 'text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+          badgeEl.textContent = '1 Karyawan Libur (Aman)';
+        } else {
+          badgeEl.className = 'text-[11px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-rose-600 text-white';
+          badgeEl.textContent = `⚠️ TABRAKAN JADWAL: ${count} ORANG LIBUR BARENG!`;
+        }
+
+        let alertNote = '';
+        if (count > 1) {
+          alertNote = `
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900 flex items-start gap-2.5">
+              <i class="fa-solid fa-triangle-exclamation text-rose-600 mt-0.5"></i>
+              <div>
+                <p class="font-extrabold">Terdapat ${count} rekan kerja libur di tanggal yang sama!</p>
+                <p class="text-[11px] text-rose-700 mt-0.5">Silakan klik tombol <strong>Ganti Hari Libur</strong> pada salah satu jadwal di bawah untuk memindahkan tanggal agar tidak tabrakan.</p>
+              </div>
+            </div>
+          `;
+        }
+
+        const cardsHTML = bookingsOnDate.map(bk => {
+          const color = getEmployeeColor(bk.employee_id);
+          const dateLabel = bk.total_days > 1
+            ? `${formatDisplayDate(bk.start_date, true)} s/d ${formatDisplayDate(bk.end_date, true)} (${bk.total_days} Hari)`
+            : `${formatDisplayDate(bk.start_date)} (1 Hari)`;
+
+          return `
+            <div class="p-4 rounded-2xl bg-white border ${count > 1 ? 'border-rose-300 shadow-sm' : 'border-slate-200'} space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2.5">
+                  <div class="w-9 h-9 rounded-xl text-white font-extrabold text-xs flex items-center justify-center shrink-0" style="background-color: ${color}">
+                    ${bk.employee_name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h4 class="text-sm font-extrabold text-slate-900">${bk.employee_name}</h4>
+                      ${bk.is_rescheduled ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">Pernah Diubah</span>` : ''}
+                    </div>
+                    <p class="text-xs text-slate-500 font-semibold">${bk.department} • ${bk.leave_type}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
+                <p><i class="fa-regular fa-clock text-slate-400 mr-1.5"></i><strong>Durasi:</strong> ${dateLabel}</p>
+                <p><i class="fa-regular fa-comment-dots text-slate-400 mr-1.5"></i><strong>Catatan:</strong> ${bk.reason || '-'}</p>
+              </div>
+
+              <div class="flex items-center justify-end gap-2 pt-1">
+                <button onclick="window.app.promptDeleteBooking('${bk.id}')" class="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition">
+                  <i class="fa-regular fa-trash-can mr-1"></i>Batalkan
+                </button>
+                <button onclick="window.app.openRescheduleModal('${bk.id}')" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                  <span>Ganti Hari Libur</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        bodyEl.innerHTML = alertNote + cardsHTML;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeDateModal() {
+      document.getElementById('modal-date-detail').classList.add('hidden');
+    }
+
+    // =================================================================
+    // FORM BOOKING LIBUR (1 HARI ATAU MULTI-HARI) & DETEKTOR BENTROK
+    // =================================================================
+    function setDurationMode(mode) {
+      state.durationMode = mode;
+      const btnSingle = document.getElementById('btn-mode-single');
+      const btnMulti = document.getElementById('btn-mode-multi');
+      const endWrapper = document.getElementById('wrapper-end-date');
+      const startLabel = document.getElementById('label-start-date');
+      const startInput = document.getElementById('booking-start-date');
+      const endInput = document.getElementById('booking-end-date');
+
+      if (mode === 'single') {
+        btnSingle.className = 'py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-white text-blue-600 shadow-sm';
+        btnMulti.className = 'py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900';
+        endWrapper.classList.add('hidden');
+        startLabel.innerHTML = `Pilih Tanggal Libur <span class="text-rose-500">*</span>`;
+        if (startInput.value) {
+          endInput.value = startInput.value;
+        }
+      } else {
+        btnMulti.className = 'py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 bg-white text-blue-600 shadow-sm';
+        btnSingle.className = 'py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 text-slate-600 hover:text-slate-900';
+        endWrapper.classList.remove('hidden');
+        startLabel.innerHTML = `Mulai Tanggal Libur <span class="text-rose-500">*</span>`;
+        if (startInput.value && (!endInput.value || endInput.value < startInput.value)) {
+          const nextD = parseYMD(startInput.value);
+          nextD.setDate(nextD.getDate() + 1);
+          endInput.value = formatDateYMD(nextD.getFullYear(), nextD.getMonth(), nextD.getDate());
+        }
+      }
+      checkBookingFormConflicts();
+    }
+
+    function onStartDateChange() {
+      const startInput = document.getElementById('booking-start-date');
+      const endInput = document.getElementById('booking-end-date');
+
+      if (state.durationMode === 'single') {
+        endInput.value = startInput.value;
+      } else {
+        if (!endInput.value || endInput.value < startInput.value) {
+          endInput.value = startInput.value;
+        }
+      }
+      checkBookingFormConflicts();
+    }
+
+    function checkBookingFormConflicts() {
+      const startVal = document.getElementById('booking-start-date')?.value;
+      let endVal = document.getElementById('booking-end-date')?.value;
+      const detectorBox = document.getElementById('live-conflict-detector');
+      const daysBadge = document.getElementById('booking-total-days-badge');
+
+      if (!startVal) {
+        detectorBox.className = 'rounded-2xl p-4 bg-slate-50 border border-slate-200 text-xs text-slate-500';
+        detectorBox.innerHTML = `<i class="fa-solid fa-circle-info mr-1.5"></i>Pilih tanggal terlebih dahulu untuk mengecek apakah ada teman yang libur di tanggal tersebut.`;
+        return;
+      }
+
+      if (state.durationMode === 'single' || !endVal || endVal < startVal) {
+        endVal = startVal;
+      }
+
+      const rangeDates = getDatesInRange(startVal, endVal);
+      if (daysBadge) {
+        daysBadge.textContent = `${rangeDates.length} Hari`;
+      }
+
+      // Cek setiap tanggal dalam rentang apakah sudah ada karyawan lain yang libur
+      const conflictDetails = [];
+      rangeDates.forEach(d => {
+        const existing = getBookingsForDate(d);
+        if (existing.length > 0) {
+          conflictDetails.push({
+            date: d,
+            bookings: existing
+          });
+        }
+      });
+
+      if (conflictDetails.length === 0) {
+        detectorBox.className = 'rounded-2xl p-4 bg-emerald-50 border border-emerald-200 text-emerald-950';
+        detectorBox.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-check"></i>
+            </div>
+            <div>
+              <h4 class="text-xs sm:text-sm font-extrabold">Tanggal Aman! Belum Ada Teman yang Libur</h4>
+              <p class="text-[11px] sm:text-xs text-emerald-700">Seluruh tanggal yang Anda pilih (${rangeDates.length} hari) masih kosong dan tidak tabrakan dengan siapa pun.</p>
+            </div>
+          </div>
+        `;
+      } else {
+        // Cari rekomendasi 3 tanggal terdekat yang masih kosong di bulan tersebut
+        const [yr, mo] = startVal.split('-').map(Number);
+        const maxDays = new Date(yr, mo, 0).getDate();
+        const emptySuggestions = [];
+        for (let dayNum = 1; dayNum <= maxDays; dayNum++) {
+          const candidate = formatDateYMD(yr, mo - 1, dayNum);
+          if (getBookingsForDate(candidate).length === 0) {
+            emptySuggestions.push( `${dayNum} ${MONTH_NAMES[mo - 1].slice(0, 3)}` );
+            if (emptySuggestions.length >= 4) break;
+          }
+        }
+
+        const listItems = conflictDetails.map(item => {
+          const colleagueNames = item.bookings.map(b => `<strong>${b.employee_name}</strong> (${b.department})`).join(', ');
+          return `<li class="mt-1">• Tanggal <strong>${formatDisplayDate(item.date)}</strong> sudah diisi oleh: ${colleagueNames}</li>`;
+        }).join('');
+
+        detectorBox.className = 'rounded-2xl p-4 bg-rose-50 border-2 border-rose-400 text-rose-950';
+        detectorBox.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-1.5 text-xs">
+              <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] font-extrabold uppercase">Peringatan Jadwal Tabrakan!</span>
+              <h4 class="text-sm font-extrabold text-rose-950">Tanggal Ini Sudah Ada Teman yang Libur:</h4>
+              <ul class="text-rose-800 space-y-0.5">${listItems}</ul>
+              <p class="text-[11px] text-rose-700 pt-1">
+                <i class="fa-regular fa-lightbulb mr-1"></i><strong>Saran Tanggal Kosong Bulan Ini:</strong> ${emptySuggestions.join(', ') || 'Cek kalender'}.
+                Jika tetap disimpan, tanggal tersebut akan ditandai merah sebagai <strong>Tanggal Tabrakan</strong> di kalender.
+              </p>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function submitNewBooking(e) {
+      e.preventDefault();
+
+      const empId = document.getElementById('booking-employee-id').value;
+      const leaveType = document.getElementById('booking-leave-type').value;
+      const startDate = document.getElementById('booking-start-date').value;
+      let endDate = document.getElementById('booking-end-date').value;
+      const reason = document.getElementById('booking-reason').value.trim();
+
+      if (state.durationMode === 'single' || !endDate || endDate < startDate) {
+        endDate = startDate;
+      }
+
+      const empObj = state.employees.find(emp => emp.id === empId);
+      if (!empObj) {
+        showToast("Pilih nama karyawan terlebih dahulu", "error");
+        return;
+      }
+
+      const totalDays = calculateTotalDays(startDate, endDate);
+
+      const newBookingPayload = {
+        employee_id: empObj.id,
+        employee_name: empObj.name,
+        department: empObj.department,
+        start_date: startDate,
+        end_date: endDate,
+        total_days: totalDays,
+        leave_type: leaveType,
+        reason: reason || 'Libur kerja terjadwal',
+        is_rescheduled: false
+      };
+
+      if (IS_PREVIEW || !supabase) {
+        const created = {
+          id: 'bk-' + Date.now(),
+          ...newBookingPayload
+        };
+        state.bookings.push(created);
+        savePreviewState();
+      } else {
+        const { data, error } = await supabase.from('leave_bookings').insert([newBookingPayload]).select().single();
+        if (error) {
+          showToast("Gagal menyimpan ke Supabase: " + error.message, "error");
+          return;
+        }
+        state.bookings.push(data);
+      }
+
+      // Lompat ke bulan dari tanggal yang baru di-booking
+      const bookedDateObj = parseYMD(startDate);
+      state.currentYear = bookedDateObj.getFullYear();
+      state.currentMonth = bookedDateObj.getMonth();
+
+      document.getElementById('booking-reason').value = '';
+      refreshAllViews();
+      switchTab('calendar');
+
+      // Cek apakah tanggal yang baru disimpan menimbulkan bentrok
+      const collisions = getBookingCollisions(newBookingPayload);
+      if (collisions.length > 0) {
+        showToast(`Booking ${empObj.name} disimpan dengan status PERINGATAN BENTROK pada ${collisions.length} tanggal!`, 'warning');
+      } else {
+        showToast(`Booking libur ${empObj.name} (${totalDays} hari) berhasil tercatat di kalender!`, 'success');
+      }
+    }
+
+    function openQuickBookingModal(prefillDateYMD = null) {
+      switchTab('booking');
+      const startInput = document.getElementById('booking-start-date');
+      const endInput = document.getElementById('booking-end-date');
+
+      if (prefillDateYMD) {
+        setDurationMode('single');
+        startInput.value = prefillDateYMD;
+        endInput.value = prefillDateYMD;
+      } else if (!startInput.value) {
+        const now = new Date();
+        const todayStr = formatDateYMD(now.getFullYear(), now.getMonth(), now.getDate());
+        startInput.value = todayStr;
+        endInput.value = todayStr;
+      }
+      checkBookingFormConflicts();
+    }
+
+    // =================================================================
+    // FITUR GANTI HARI LIBUR (RESCHEDULE) & DAFTAR JADWAL
+    // =================================================================
+    function setScheduleFilter(filterType) {
+      state.scheduleFilter = filterType;
+      renderSchedulesList();
+    }
+
+    function renderSchedulesList() {
+      const container = document.getElementById('schedules-list-container');
+      const searchQ = (document.getElementById('search-schedule-input')?.value || '').toLowerCase();
+      const monthFilter = document.getElementById('filter-schedule-month')?.value || 'ALL';
+      const activeMonthPrefix = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}`;
+
+      // Update active filter tab styling
+      ['all', 'collision', 'rescheduled'].forEach(tab => {
+        const btn = document.getElementById(`tab-filter-${tab}`);
+        if (!btn) return;
+        if (state.scheduleFilter === tab) {
+          btn.className = 'px-3.5 py-2 rounded-xl text-xs font-extrabold bg-blue-600 text-white shadow-sm transition flex items-center gap-1.5';
+        } else {
+          btn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition flex items-center gap-1.5';
+        }
+      });
+
+      const sortedBookings = [...state.bookings].sort((a, b) => a.start_date.localeCompare(b.start_date));
+
+      const filtered = sortedBookings.filter(bk => {
+        if (monthFilter === 'CURRENT') {
+          if (!bk.start_date.startsWith(activeMonthPrefix) && !bk.end_date.startsWith(activeMonthPrefix)) {
+            return false;
+          }
+        }
+
+        const matchesSearch =
+          bk.employee_name.toLowerCase().includes(searchQ) ||
+          bk.department.toLowerCase().includes(searchQ) ||
+          (bk.leave_type || '').toLowerCase().includes(searchQ);
+
+        if (!matchesSearch) return false;
+
+        if (state.scheduleFilter === 'collision') {
+          return getBookingCollisions(bk).length > 0;
+        }
+        if (state.scheduleFilter === 'rescheduled') {
+          return bk.is_rescheduled === true;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full glass-card rounded-2xl p-10 text-center space-y-3">
+            <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+              <i class="fa-regular fa-calendar-xmark"></i>
+            </div>
+            <h4 class="text-sm font-extrabold text-slate-800">Tidak Ada Jadwal Libur yang Ditemukan</h4>
+            <p class="text-xs text-slate-500">Coba ubah filter pencarian atau tambahkan jadwal booking libur baru.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(bk => {
+        const collisions = getBookingCollisions(bk);
+        const hasCollision = collisions.length > 0;
+        const color = getEmployeeColor(bk.employee_id);
+
+        const dateRangeText = bk.total_days > 1
+          ? `${formatDisplayDate(bk.start_date)} — ${formatDisplayDate(bk.end_date)}`
+          : formatDisplayDate(bk.start_date);
+
+        let collisionBanner = '';
+        if (hasCollision) {
+          const otherNames = [...new Set(collisions.flatMap(c => c.others.map(o => o.employee_name)))].join(', ');
+          const collisionDatesStr = collisions.map(c => formatDisplayDate(c.date, true)).join(', ');
+          collisionBanner = `
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-300 text-xs text-rose-900 flex items-start gap-2.5">
+              <i class="fa-solid fa-triangle-exclamation text-rose-600 mt-0.5"></i>
+              <div>
+                <p class="font-extrabold">Tabrakan dengan: ${otherNames}</p>
+                <p class="text-[11px] text-rose-700">Bentrok pada tanggal: <strong>${collisionDatesStr}</strong></p>
+              </div>
+            </div>
+          `;
+        } else {
+          collisionBanner = `
+            <div class="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i>
+              <span class="font-semibold">Jadwal Aman • Tidak tabrakan dengan teman lain</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="glass-card rounded-2xl p-5 flex flex-col justify-between gap-4 ${hasCollision ? 'border-2 border-rose-400 bg-rose-50/20' : ''}">
+            <div class="space-y-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-3">
+                  <div class="w-11 h-11 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${color}">
+                    ${bk.employee_name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <h4 class="font-extrabold text-slate-900 text-sm sm:text-base">${bk.employee_name}</h4>
+                      ${bk.is_rescheduled ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Pernah Ganti Hari</span>` : ''}
+                    </div>
+                    <p class="text-xs text-slate-500 font-semibold">${bk.department} • <span class="text-blue-600">${bk.leave_type}</span></p>
+                  </div>
+                </div>
+
+                <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${hasCollision ? 'bg-rose-600 text-white' : 'bg-blue-100 text-blue-800'} shrink-0">
+                  ${bk.total_days} Hari
+                </span>
+              </div>
+
+              <!-- Tanggal -->
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                <div class="text-xs">
+                  <span class="text-[10px] font-bold uppercase text-slate-400 block">Tanggal Libur:</span>
+                  <span class="font-extrabold text-slate-900 text-xs sm:text-sm">${dateRangeText}</span>
+                </div>
+                <button onclick="window.app.jumpToCalendarDate('${bk.start_date}')" class="text-xs font-bold text-blue-600 hover:underline">
+                  <i class="fa-regular fa-calendar mr-1"></i>Cek Kalender
+                </button>
+              </div>
+
+              ${collisionBanner}
+
+              <p class="text-xs text-slate-600"><strong class="text-slate-700">Catatan:</strong> ${bk.reason || '-'}</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-3 border-t border-slate-200/80 flex items-center justify-between gap-2">
+              <button onclick="window.app.promptDeleteBooking('${bk.id}')" class="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs transition flex items-center gap-1.5">
+                <i class="fa-regular fa-trash-can"></i>
+                <span>Batalkan Libur</span>
+              </button>
+
+              <button onclick="window.app.openRescheduleModal('${bk.id}')" class="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold text-xs shadow-md shadow-indigo-500/20 transition flex items-center gap-1.5">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Ganti Hari Libur</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openRescheduleModal(bookingId) {
+      closeDateModal();
+      const bk = state.bookings.find(b => b.id === bookingId);
+      if (!bk) return;
+
+      document.getElementById('reschedule-booking-id').value = bk.id;
+      document.getElementById('reschedule-emp-subtitle').textContent = `${bk.employee_name} (${bk.department})`;
+
+      const oldRange = bk.total_days > 1
+        ? `${formatDisplayDate(bk.start_date)} s/d ${formatDisplayDate(bk.end_date)} (${bk.total_days} Hari)`
+        : `${formatDisplayDate(bk.start_date)} (1 Hari)`;
+      document.getElementById('reschedule-old-dates').textContent = oldRange;
+
+      document.getElementById('reschedule-start-date').value = bk.start_date;
+      document.getElementById('reschedule-end-date').value = bk.end_date;
+      document.getElementById('reschedule-leave-type').value = bk.leave_type;
+      document.getElementById('reschedule-reason').value = bk.reason || '';
+
+      setRescheduleMode(bk.total_days > 1 ? 'multi' : 'single');
+      document.getElementById('modal-reschedule').classList.remove('hidden');
+    }
+
+    function closeRescheduleModal() {
+      document.getElementById('modal-reschedule').classList.add('hidden');
+    }
+
+    function setRescheduleMode(mode) {
+      state.rescheduleMode = mode;
+      const btnSingle = document.getElementById('btn-resched-single');
+      const btnMulti = document.getElementById('btn-resched-multi');
+      const endWrapper = document.getElementById('wrapper-reschedule-end');
+      const startInput = document.getElementById('reschedule-start-date');
+      const endInput = document.getElementById('reschedule-end-date');
+
+      if (mode === 'single') {
+        btnSingle.className = 'py-2 px-3 rounded-lg font-bold text-xs transition bg-white text-blue-600 shadow-sm';
+        btnMulti.className = 'py-2 px-3 rounded-lg font-bold text-xs transition text-slate-600';
+        endWrapper.classList.add('hidden');
+        endInput.value = startInput.value;
+      } else {
+        btnMulti.className = 'py-2 px-3 rounded-lg font-bold text-xs transition bg-white text-blue-600 shadow-sm';
+        btnSingle.className = 'py-2 px-3 rounded-lg font-bold text-xs transition text-slate-600';
+        endWrapper.classList.remove('hidden');
+      }
+      checkRescheduleConflicts();
+    }
+
+    function onRescheduleDateChange() {
+      const startInput = document.getElementById('reschedule-start-date');
+      const endInput = document.getElementById('reschedule-end-date');
+      if (state.rescheduleMode === 'single' || endInput.value < startInput.value) {
+        endInput.value = startInput.value;
+      }
+      checkRescheduleConflicts();
+    }
+
+    function checkRescheduleConflicts() {
+      const bookingId = document.getElementById('reschedule-booking-id').value;
+      const startVal = document.getElementById('reschedule-start-date').value;
+      let endVal = document.getElementById('reschedule-end-date').value;
+      const box = document.getElementById('reschedule-conflict-box');
+
+      if (!startVal) return;
+      if (state.rescheduleMode === 'single' || !endVal || endVal < startVal) {
+        endVal = startVal;
+      }
+
+      const rangeDates = getDatesInRange(startVal, endVal);
+      const conflicts = [];
+
+      rangeDates.forEach(d => {
+        const others = getBookingsForDate(d, 'ALL', bookingId);
+        if (others.length > 0) {
+          conflicts.push({ date: d, others });
+        }
+      });
+
+      if (conflicts.length === 0) {
+        box.className = 'rounded-xl p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs';
+        box.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i><strong>Tanggal Baru Aman!</strong> Tidak ada karyawan lain yang libur pada tanggal ini (${rangeDates.length} hari).`;
+      } else {
+        const detailStr = conflicts.map(c => `${formatDisplayDate(c.date, true)} (${c.others.map(o => o.employee_name).join(', ')})`).join('; ');
+        box.className = 'rounded-xl p-3.5 bg-rose-50 border border-rose-300 text-rose-900 text-xs';
+        box.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1.5"></i><strong>Perhatian:</strong> Tanggal baru ini masih tabrakan dengan: <strong>${detailStr}</strong>.`;
+      }
+    }
+
+    async function submitReschedule(e) {
+      e.preventDefault();
+      const bookingId = document.getElementById('reschedule-booking-id').value;
+      const startDate = document.getElementById('reschedule-start-date').value;
+      let endDate = document.getElementById('reschedule-end-date').value;
+      const leaveType = document.getElementById('reschedule-leave-type').value;
+      const reason = document.getElementById('reschedule-reason').value.trim();
+
+      if (state.rescheduleMode === 'single' || !endDate || endDate < startDate) {
+        endDate = startDate;
+      }
+
+      const totalDays = calculateTotalDays(startDate, endDate);
+      const index = state.bookings.findIndex(b => b.id === bookingId);
+      if (index === -1) return;
+
+      const updatedFields = {
+        start_date: startDate,
+        end_date: endDate,
+        total_days: totalDays,
+        leave_type: leaveType,
+        reason: reason || 'Jadwal telah diganti',
+        is_rescheduled: true
+      };
+
+      if (IS_PREVIEW || !supabase) {
+        state.bookings[index] = {
+          ...state.bookings[index],
+          ...updatedFields
+        };
+        savePreviewState();
+      } else {
+        const { data, error } = await supabase
+          .from('leave_bookings')
+          .update(updatedFields)
+          .eq('id', bookingId)
+          .select()
+          .single();
+
+        if (error) {
+          showToast("Gagal memperbarui jadwal di Supabase: " + error.message, "error");
+          return;
+        }
+        state.bookings[index] = data;
+      }
+
+      closeRescheduleModal();
+      const targetDate = parseYMD(startDate);
+      state.currentYear = targetDate.getFullYear();
+      state.currentMonth = targetDate.getMonth();
+
+      refreshAllViews();
+      showToast(`Hari libur ${state.bookings[index].employee_name} berhasil diganti ke ${formatDisplayDate(startDate)}!`, 'success');
+    }
+
+    // =================================================================
+    // MANAJEMEN DATA KARYAWAN & KONTROL AKSES ADMIN
+    // =================================================================
+    function renderAdminUIState() {
+      const isAdmin = state.isAdmin;
+
+      // Sidebar & Header Badges
+      const roleBadge = document.getElementById('sidebar-role-badge');
+      const navAdminBadge = document.getElementById('badge-nav-admin');
+      const headerAdminPill = document.getElementById('header-admin-pill');
+      const statusDot = document.getElementById('access-status-dot');
+      const accessTitle = document.getElementById('access-mode-title');
+      const accessSub = document.getElementById('access-mode-subtitle');
+      const btnSidebarAuth = document.getElementById('btn-sidebar-auth');
+      const labelMobileAuth = document.getElementById('label-mobile-auth');
+      const adminPanels = document.getElementById('admin-only-panels');
+      const adminBanner = document.getElementById('admin-access-banner');
+      const resetDemoBtn = document.getElementById('btn-reset-demo');
+      const empListSub = document.getElementById('emp-list-subtitle');
+
+      if (isAdmin) {
+        if (roleBadge) {
+          roleBadge.textContent = 'Admin';
+          roleBadge.className = 'text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-indigo-600 text-white shrink-0';
+        }
+        if (navAdminBadge) navAdminBadge.classList.remove('hidden');
+        if (headerAdminPill) headerAdminPill.classList.remove('hidden');
+        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-indigo-600 shrink-0 animate-pulse';
+        if (accessTitle) accessTitle.textContent = 'Mode Admin Aktif';
+        if (accessSub) accessSub.textContent = state.adminEmail || 'Akses Penuh';
+        if (btnSidebarAuth) {
+          btnSidebarAuth.innerHTML = `<i class="fa-solid fa-sliders mr-1"></i>Panel`;
+          btnSidebarAuth.className = 'text-xs font-bold text-indigo-700 hover:text-indigo-900 px-2.5 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 transition shrink-0';
+        }
+        if (labelMobileAuth) labelMobileAuth.textContent = 'Admin Aktif';
+        if (adminPanels) adminPanels.classList.remove('hidden');
+        if (resetDemoBtn && IS_PREVIEW) resetDemoBtn.classList.remove('hidden');
+        if (empListSub) empListSub.textContent = 'Mode Admin: Anda dapat mengedit, menghapus, atau menambah data karyawan di bawah ini.';
+
+        if (adminBanner) {
+          adminBanner.className = 'glass-card rounded-2xl p-4 sm:p-5 border-2 border-indigo-300 bg-gradient-to-r from-indigo-50/90 to-blue-50/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4';
+          adminBanner.innerHTML = `
+            <div class="flex items-start sm:items-center gap-3.5">
+              <div class="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/25">
+                <i class="fa-solid fa-user-shield text-lg"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[10px] font-extrabold uppercase">Administrator Aktif</span>
+                  <span class="text-xs font-bold text-indigo-900">${state.adminEmail || 'admin@kantor.com'}</span>
+                </div>
+                <h4 class="text-sm sm:text-base font-extrabold text-slate-900 mt-0.5">Panel Kelola Website & Master Data Karyawan</h4>
+                <p class="text-xs text-slate-600">Anda dapat mengubah Logo & Nama Website, serta membuat, mengubah, dan menghapus data karyawan.</p>
+              </div>
+            </div>
+            <button onclick="window.app.handleAdminLogout()" class="self-start sm:self-center px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm transition shrink-0 flex items-center gap-2">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span>Logout Admin</span>
+            </button>
+          `;
+        }
+      } else {
+        if (roleBadge) {
+          roleBadge.textContent = 'Publik';
+          roleBadge.className = 'text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0';
+        }
+        if (navAdminBadge) navAdminBadge.classList.add('hidden');
+        if (headerAdminPill) headerAdminPill.classList.add('hidden');
+        if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0';
+        if (accessTitle) accessTitle.textContent = 'Akses Publik Aktif';
+        if (accessSub) accessSub.textContent = 'Karyawan Tanpa Login';
+        if (btnSidebarAuth) {
+          btnSidebarAuth.innerHTML = `<i class="fa-solid fa-user-shield mr-1"></i>Login Admin`;
+          btnSidebarAuth.className = 'text-xs font-bold text-blue-600 hover:text-blue-800 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 transition shrink-0';
+        }
+        if (labelMobileAuth) labelMobileAuth.textContent = 'Admin';
+        if (adminPanels) adminPanels.classList.add('hidden');
+        if (resetDemoBtn) resetDemoBtn.classList.add('hidden');
+        if (empListSub) empListSub.textContent = 'Klik tombol lihat jadwal untuk memfilter hari libur per karyawan. Login Admin untuk mengelola tim.';
+
+        if (adminBanner) {
+          adminBanner.className = 'glass-card rounded-2xl p-4 sm:p-5 border-l-4 border-l-blue-600 flex flex-col sm:flex-row sm:items-center justify-between gap-4';
+          adminBanner.innerHTML = `
+            <div class="flex items-start sm:items-center gap-3.5">
+              <div class="w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-lock text-lg"></i>
+              </div>
+              <div>
+                <h4 class="text-sm sm:text-base font-extrabold text-slate-900">Ingin Mengubah Logo/Nama Website atau Mengelola Data Karyawan?</h4>
+                <p class="text-xs text-slate-500 mt-0.5">Fitur tambah, edit, hapus karyawan serta kustomisasi identitas website dikhususkan untuk Admin.</p>
+              </div>
+            </div>
+            <button onclick="window.app.openAuthModal()" class="self-start sm:self-center px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition shrink-0 flex items-center gap-2">
+              <i class="fa-solid fa-user-shield"></i>
+              <span>Login Admin Sekarang</span>
+            </button>
+          `;
+        }
+      }
+    }
+
+    function populateEmployeeDropdowns() {
+      const selectBooking = document.getElementById('booking-employee-id');
+      const selectDeptFilter = document.getElementById('filter-calendar-dept');
+
+      if (selectBooking) {
+        const currentVal = selectBooking.value;
+        selectBooking.innerHTML = state.employees.map(emp =>
+          `<option value="${emp.id}">${emp.name} — ${emp.department}</option>`
+        ).join('');
+        if (currentVal && state.employees.some(e => e.id === currentVal)) {
+          selectBooking.value = currentVal;
+        }
+      }
+
+      if (selectDeptFilter) {
+        const currDept = selectDeptFilter.value;
+        const depts = [...new Set(state.employees.map(e => e.department))];
+        selectDeptFilter.innerHTML = `<option value="ALL">Semua Divisi (${state.employees.length} Orang)</option>` +
+          depts.map(d => `<option value="${d}">Divisi: ${d}</option>`).join('');
+        if (currDept && (currDept === 'ALL' || depts.includes(currDept))) {
+          selectDeptFilter.value = currDept;
+        }
+      }
+    }
+
+    function toggleQuickAddEmployee() {
+      if (!state.isAdmin) {
+        showToast("Silakan login sebagai Admin untuk menambahkan data karyawan baru.", "info");
+        openAuthModal();
+        return;
+      }
+      const box = document.getElementById('quick-add-emp-box');
+      box.classList.toggle('hidden');
+    }
+
+    async function saveQuickEmployee() {
+      if (!state.isAdmin) {
+        openAuthModal();
+        return;
+      }
+      const nameInput = document.getElementById('quick-emp-name');
+      const deptInput = document.getElementById('quick-emp-dept');
+      const name = nameInput.value.trim();
+      const dept = deptInput.value.trim() || 'Operasional';
+
+      if (!name) {
+        showToast("Masukkan nama karyawan terlebih dahulu", "error");
+        return;
+      }
+
+      const palette = ['#2563eb', '#059669', '#7c3aed', '#d97706', '#0891b2', '#db2777'];
+      const randomColor = palette[state.employees.length % palette.length];
+
+      const newEmp = {
+        employee_code: `EMP-0${state.employees.length + 1}`,
+        name,
+        department: dept,
+        pin_code: '1234',
+        badge_color: randomColor
+      };
+
+      let savedEmpObj = null;
+      if (IS_PREVIEW || !supabase) {
+        savedEmpObj = { id: 'emp-' + Date.now(), ...newEmp };
+        state.employees.push(savedEmpObj);
+        savePreviewState();
+      } else {
+        const { data, error } = await supabase.from('employees').insert([newEmp]).select().single();
+        if (error) {
+          showToast("Gagal menyimpan karyawan: " + error.message, "error");
+          return;
+        }
+        savedEmpObj = data;
+        state.employees.push(data);
+      }
+
+      nameInput.value = '';
+      deptInput.value = '';
+      document.getElementById('quick-add-emp-box').classList.add('hidden');
+      populateEmployeeDropdowns();
+      document.getElementById('booking-employee-id').value = savedEmpObj.id;
+      renderEmployeesList();
+      showToast(`Nama ${savedEmpObj.name} berhasil ditambahkan & dipilih!`, 'success');
+    }
+
+    async function submitNewEmployee(e) {
+      e.preventDefault();
+      if (!state.isAdmin) {
+        showToast("Hanya Admin yang dapat menambahkan data karyawan!", "error");
+        openAuthModal();
+        return;
+      }
+
+      const name = document.getElementById('emp-input-name').value.trim();
+      const code = document.getElementById('emp-input-code').value.trim() || `EMP-0${state.employees.length + 1}`;
+      const dept = document.getElementById('emp-input-dept').value.trim();
+      const colorRadio = document.querySelector('input[name="emp_color"]:checked');
+      const badgeColor = colorRadio ? colorRadio.value : '#2563eb';
+
+      const payload = {
+        employee_code: code,
+        name,
+        department: dept,
+        pin_code: '1234',
+        badge_color: badgeColor
+      };
+
+      if (IS_PREVIEW || !supabase) {
+        state.employees.push({ id: 'emp-' + Date.now(), ...payload });
+        savePreviewState();
+      } else {
+        const { data, error } = await supabase.from('employees').insert([payload]).select().single();
+        if (error) {
+          showToast("Gagal menambah karyawan: " + error.message, "error");
+          return;
+        }
+        state.employees.push(data);
+      }
+
+      document.getElementById('form-add-employee').reset();
+      refreshAllViews();
+      showToast(`Karyawan "${name}" berhasil ditambahkan ke dalam tim!`, 'success');
+    }
+
+    // FITUR ADMIN: EDIT DATA KARYAWAN
+    function openEditEmployeeModal(empId) {
+      if (!state.isAdmin) {
+        showToast("Silakan login sebagai Admin untuk mengedit karyawan.", "error");
+        openAuthModal();
+        return;
+      }
+      const emp = state.employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      document.getElementById('edit-emp-id').value = emp.id;
+      document.getElementById('edit-emp-name').value = emp.name;
+      document.getElementById('edit-emp-code').value = emp.employee_code || '';
+      document.getElementById('edit-emp-dept').value = emp.department || '';
+
+      const radios = document.querySelectorAll('input[name="edit_emp_color"]');
+      radios.forEach(r => {
+        r.checked = (r.value === (emp.badge_color || '#2563eb'));
+      });
+
+      document.getElementById('modal-edit-employee').classList.remove('hidden');
+    }
+
+    function closeEditEmployeeModal() {
+      document.getElementById('modal-edit-employee').classList.add('hidden');
+    }
+
+    async function submitEditEmployee(e) {
+      e.preventDefault();
+      if (!state.isAdmin) return;
+
+      const empId = document.getElementById('edit-emp-id').value;
+      const newName = document.getElementById('edit-emp-name').value.trim();
+      const newCode = document.getElementById('edit-emp-code').value.trim();
+      const newDept = document.getElementById('edit-emp-dept').value.trim();
+      const colorRadio = document.querySelector('input[name="edit_emp_color"]:checked');
+      const newColor = colorRadio ? colorRadio.value : '#2563eb';
+
+      const idx = state.employees.findIndex(item => item.id === empId);
+      if (idx === -1) return;
+
+      const updatedEmp = {
+        ...state.employees[idx],
+        name: newName,
+        employee_code: newCode,
+        department: newDept,
+        badge_color: newColor
+      };
+
+      if (IS_PREVIEW || !supabase) {
+        state.employees[idx] = updatedEmp;
+        // Sinkronkan nama & divisi karyawan pada semua booking libur miliknya
+        state.bookings = state.bookings.map(bk => {
+          if (bk.employee_id === empId) {
+            return { ...bk, employee_name: newName, department: newDept };
+          }
+          return bk;
+        });
+        savePreviewState();
+      } else {
+        const { error: empErr } = await supabase
+          .from('employees')
+          .update({
+            name: newName,
+            employee_code: newCode,
+            department: newDept,
+            badge_color: newColor
+          })
+          .eq('id', empId);
+
+        if (empErr) {
+          showToast("Gagal mengupdate karyawan di Supabase: " + empErr.message, "error");
+          return;
+        }
+
+        await supabase
+          .from('leave_bookings')
+          .update({ employee_name: newName, department: newDept })
+          .eq('employee_id', empId);
+
+        state.employees[idx] = updatedEmp;
+        state.bookings = state.bookings.map(bk =>
+          bk.employee_id === empId ? { ...bk, employee_name: newName, department: newDept } : bk
+        );
+      }
+
+      closeEditEmployeeModal();
+      refreshAllViews();
+      showToast(`Data karyawan "${newName}" berhasil diperbarui!`, "success");
+    }
+
+    // FITUR ADMIN: HAPUS DATA KARYAWAN
+    function promptDeleteEmployee(empId) {
+      if (!state.isAdmin) {
+        showToast("Hanya Admin yang dapat menghapus data karyawan!", "error");
+        openAuthModal();
+        return;
+      }
+      const emp = state.employees.find(e => e.id === empId);
+      if (!emp) return;
+
+      const empBookingsCount = state.bookings.filter(b => b.employee_id === empId).length;
+
+      document.getElementById('confirm-modal-title').textContent = `Hapus Karyawan "${emp.name}"?`;
+      document.getElementById('confirm-modal-desc').textContent =
+        empBookingsCount > 0
+          ? `Data karyawan ini beserta ${empBookingsCount} jadwal liburnya di kalender akan ikut dihapus permanen.`
+          : `Data karyawan ${emp.name} (${emp.department}) akan dihapus dari daftar tim.`;
+
+      const yesBtn = document.getElementById('btn-confirm-yes');
+      yesBtn.textContent = 'Ya, Hapus Karyawan';
+      yesBtn.onclick = () => executeDeleteEmployee(empId);
+
+      document.getElementById('modal-confirm-delete').classList.remove('hidden');
+    }
+
+    async function executeDeleteEmployee(empId) {
+      const emp = state.employees.find(e => e.id === empId);
+      if (!IS_PREVIEW && supabase) {
+        await supabase.from('leave_bookings').delete().eq('employee_id', empId);
+        const { error } = await supabase.from('employees').delete().eq('id', empId);
+        if (error) {
+          showToast("Gagal menghapus karyawan dari Supabase: " + error.message, "error");
+          closeConfirmModal();
+          return;
+        }
+      }
+
+      state.employees = state.employees.filter(e => e.id !== empId);
+      state.bookings = state.bookings.filter(b => b.employee_id !== empId);
+      savePreviewState();
+      closeConfirmModal();
+      refreshAllViews();
+      showToast(`Karyawan "${emp ? emp.name : ''}" telah dihapus dari sistem.`, "info");
+    }
+
+    function renderEmployeesList() {
+      const container = document.getElementById('employees-list-container');
+      if (!container) return;
+
+      const monthPrefix = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}`;
+
+      if (state.employees.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full p-8 text-center rounded-2xl bg-slate-50 border border-dashed border-slate-300">
+            <p class="text-sm font-bold text-slate-700">Belum Ada Data Karyawan</p>
+            <p class="text-xs text-slate-500 mt-1">Login sebagai Admin untuk menambahkan anggota tim baru.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.employees.map(emp => {
+        const empBookings = state.bookings.filter(b => b.employee_id === emp.id);
+        const daysThisMonth = empBookings
+          .filter(b => b.start_date.startsWith(monthPrefix) || b.end_date.startsWith(monthPrefix))
+          .reduce((acc, item) => acc + (item.total_days || 1), 0);
+
+        const adminButtonsHTML = state.isAdmin
+          ? `
+            <div class="flex items-center gap-1.5 pt-2.5 mt-2.5 border-t border-slate-100 justify-end">
+              <button onclick="window.app.openEditEmployeeModal('${emp.id}')" class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold text-[11px] transition flex items-center gap-1" title="Edit Karyawan">
+                <i class="fa-solid fa-pen-to-square"></i> Edit
+              </button>
+              <button onclick="window.app.promptDeleteEmployee('${emp.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[11px] transition flex items-center gap-1" title="Hapus Karyawan">
+                <i class="fa-regular fa-trash-can"></i> Hapus
+              </button>
+            </div>
+          `
+          : '';
+
+        return `
+          <div class="p-4 rounded-2xl bg-white border border-slate-200/90 flex flex-col justify-between shadow-sm hover:shadow-md transition">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-11 h-11 rounded-2xl text-white font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm" style="background-color: ${emp.badge_color || '#2563eb'}">
+                  ${emp.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div class="truncate">
+                  <h4 class="text-sm font-extrabold text-slate-900 truncate">${emp.name}</h4>
+                  <p class="text-xs text-slate-500 font-semibold truncate">${emp.department} • <span class="text-slate-400">${emp.employee_code || '-'}</span></p>
+                  <span class="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700">
+                    Libur Bulan Ini: <strong>${daysThisMonth} Hari</strong>
+                  </span>
+                </div>
+              </div>
+
+              <button onclick="window.app.filterScheduleByEmployee('${emp.name}')" class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold text-xs shrink-0 transition">
+                Jadwal
+              </button>
+            </div>
+            ${adminButtonsHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterScheduleByEmployee(empName) {
+      switchTab('schedules');
+      const searchInput = document.getElementById('search-schedule-input');
+      if (searchInput) {
+        searchInput.value = empName;
+      }
+      setScheduleFilter('all');
+    }
+
+    function resetDemoData() {
+      const { demoEmployees, demoBookings } = generateInitialDemoData();
+      state.employees = demoEmployees;
+      state.bookings = demoBookings;
+      const now = new Date();
+      state.currentYear = now.getFullYear();
+      state.currentMonth = now.getMonth();
+      savePreviewState();
+      refreshAllViews();
+      showToast("Data simulasi berhasil di-reset ke kondisi awal!", "info");
+    }
+
+    // =================================================================
+    // MODAL AKSES & SUPABASE AUTH (LOGIN / LOGOUT ADMIN)
+    // =================================================================
+    function openAuthModal() {
+      const loggedInBox = document.getElementById('auth-logged-in-box');
+      const loginForm = document.getElementById('form-admin-login');
+      const activeEmail = document.getElementById('auth-active-email');
+
+      if (state.isAdmin) {
+        loggedInBox.classList.remove('hidden');
+        loginForm.classList.add('hidden');
+        if (activeEmail) activeEmail.textContent = state.adminEmail || 'admin@kantor.com';
+      } else {
+        loggedInBox.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+      }
+
+      document.getElementById('modal-auth').classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('modal-auth').classList.add('hidden');
+    }
+
+    function goToAdminPanel() {
+      closeAuthModal();
+      switchTab('employees');
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value.trim();
+
+      if (!IS_PREVIEW && supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          showToast("Login Admin gagal: " + error.message, "error");
+          return;
+        }
+        state.adminEmail = data.user?.email || email;
+      } else {
+        // Mode Preview / Demo
+        if (!email || !password) {
+          showToast("Masukkan email dan password admin", "error");
+          return;
+        }
+        state.adminEmail = email;
+      }
+
+      state.isAdmin = true;
+      localStorage.setItem(STORAGE_ADMIN_SESSION_KEY, state.adminEmail);
+      closeAuthModal();
+      refreshAllViews();
+      switchTab('employees');
+      showToast("Login berhasil! Mode Admin telah aktif.", "success");
+    }
+
+    async function handleAdminLogout() {
+      if (!IS_PREVIEW && supabase) {
+        await supabase.auth.signOut();
+      }
+      state.isAdmin = false;
+      state.adminEmail = '';
+      localStorage.removeItem(STORAGE_ADMIN_SESSION_KEY);
+      closeAuthModal();
+      refreshAllViews();
+      showToast("Anda telah logout dari Mode Admin. Kembali ke Mode Publik.", "info");
+    }
+
+    // =================================================================
+    // TOAST NOTIFICATION (PENGGANTI ALERT)
+    // =================================================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const styles = {
+        success: 'bg-emerald-600 text-white border-emerald-500',
+        warning: 'bg-rose-600 text-white border-rose-500',
+        error: 'bg-red-600 text-white border-red-500',
+        info: 'bg-slate-800 text-white border-slate-700'
+      };
+
+      const icons = {
+        success: 'fa-circle-check',
+        warning: 'fa-triangle-exclamation',
+        error: 'fa-circle-xmark',
+        info: 'fa-circle-info'
+      };
+
+      toast.className = `pointer-events-auto p-4 rounded-2xl shadow-xl border flex items-start gap-3 transform transition-all duration-300 ${styles[type] || styles.success}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.success} text-base mt-0.5"></i>
+        <p class="text-xs font-bold leading-relaxed flex-1">${message}</p>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 4200);
+    }
+
+    // =================================================================
+    // NAVIGASI TAB, BULAN KALENDER, & HAPUS BOOKING LIBUR
+    // =================================================================
+    function switchTab(tabName, subFilter = null) {
+      state.currentTab = tabName;
+      const views = ['calendar', 'booking', 'schedules', 'employees'];
+
+      views.forEach(v => {
+        const sectionEl = document.getElementById(`view-${v}`);
+        if (sectionEl) {
+          if (v === tabName) {
+            sectionEl.classList.remove('hidden');
+          } else {
+            sectionEl.classList.add('hidden');
+          }
+        }
+
+        // Update styling tombol navigasi Desktop
+        const dBtn = document.getElementById(`nav-desktop-${v}`);
+        if (dBtn) {
+          if (v === tabName) {
+            dBtn.className = 'w-full flex items-center justify-between px-4 py-3 rounded-xl font-extrabold text-sm transition-all bg-blue-600 text-white shadow-md shadow-blue-500/25';
+          } else {
+            dBtn.className = 'w-full flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm transition-all text-slate-600 hover:bg-slate-100 hover:text-slate-900';
+          }
+        }
+
+        // Update styling tombol navigasi Mobile
+        const mBtn = document.getElementById(`nav-mobile-${v}`);
+        if (mBtn) {
+          if (v === tabName) {
+            mBtn.className = 'flex flex-col items-center justify-center py-1.5 px-3.5 rounded-xl transition relative bg-blue-600 text-white shadow-sm';
+          } else {
+            mBtn.className = 'flex flex-col items-center justify-center py-1.5 px-3.5 rounded-xl transition relative text-slate-500 hover:text-slate-900';
+          }
+        }
+      });
+
+      const titles = {
+        calendar: {
+          title: 'Kalender Hari Libur Karyawan',
+          sub: 'Pantau tanggal libur teman kerja agar tidak terjadi jadwal libur yang tabrakan'
+        },
+        booking: {
+          title: 'Form Booking Hari Libur',
+          sub: 'Ajukan libur 1 hari atau lebih dari 1 hari dengan deteksi tabrakan otomatis'
+        },
+        schedules: {
+          title: 'Daftar Jadwal & Ganti Hari Libur',
+          sub: 'Ubah tanggal libur karyawan dengan cepat jika ada jadwal yang tabrakan'
+        },
+        employees: {
+          title: 'Data Tim & Panel Admin',
+          sub: 'Kelola daftar karyawan, identitas nama website, serta logo perusahaan'
+        }
+      };
+
+      const info = titles[tabName] || titles.calendar;
+      const titleEl = document.getElementById('header-page-title');
+      const subEl = document.getElementById('header-page-subtitle');
+      if (titleEl) titleEl.textContent = info.title;
+      if (subEl) subEl.textContent = info.sub;
+
+      if (tabName === 'schedules' && subFilter) {
+        setScheduleFilter(subFilter);
+      } else if (tabName === 'booking') {
+        checkBookingFormConflicts();
+      }
+    }
+
+    function changeMonth(offset) {
+      state.currentMonth += offset;
+      if (state.currentMonth > 11) {
+        state.currentMonth = 0;
+        state.currentYear++;
+      } else if (state.currentMonth < 0) {
+        state.currentMonth = 11;
+        state.currentYear--;
+      }
+      renderCalendar();
+      renderEmployeesList();
+    }
+
+    function goToToday() {
+      const now = new Date();
+      state.currentYear = now.getFullYear();
+      state.currentMonth = now.getMonth();
+      renderCalendar();
+      renderEmployeesList();
+    }
+
+    function jumpToCalendarDate(ymdStr) {
+      const d = parseYMD(ymdStr);
+      state.currentYear = d.getFullYear();
+      state.currentMonth = d.getMonth();
+      renderCalendar();
+      switchTab('calendar');
+      openDateModal(ymdStr);
+    }
+
+    function promptDeleteBooking(bookingId) {
+      closeDateModal();
+      const bk = state.bookings.find(b => b.id === bookingId);
+      if (!bk) return;
+
+      document.getElementById('confirm-modal-title').textContent = `Batalkan Libur ${bk.employee_name}?`;
+      document.getElementById('confirm-modal-desc').textContent =
+        `Jadwal libur pada tanggal ${formatDisplayDate(bk.start_date)} akan dihapus dari kalender.`;
+
+      const yesBtn = document.getElementById('btn-confirm-yes');
+      yesBtn.textContent = 'Ya, Batalkan';
+      yesBtn.onclick = () => executeDeleteBooking(bookingId);
+
+      document.getElementById('modal-confirm-delete').classList.remove('hidden');
+    }
+
+    async function executeDeleteBooking(bookingId) {
+      const bk = state.bookings.find(b => b.id === bookingId);
+      if (!IS_PREVIEW && supabase) {
+        const { error } = await supabase.from('leave_bookings').delete().eq('id', bookingId);
+        if (error) {
+          showToast("Gagal menghapus jadwal dari Supabase: " + error.message, "error");
+          closeConfirmModal();
+          return;
+        }
+      }
+
+      state.bookings = state.bookings.filter(b => b.id !== bookingId);
+      savePreviewState();
+      closeConfirmModal();
+      refreshAllViews();
+      showToast(`Jadwal libur ${bk ? bk.employee_name : ''} berhasil dibatalkan.`, "info");
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('modal-confirm-delete').classList.add('hidden');
+    }
+
+    // =================================================================
+    // REFRESH SEMUA TAMPILAN & REGISTER PWA SERVICE WORKER
+    // =================================================================
+    function refreshAllViews() {
+      applySiteSettingsToDOM();
+      renderAdminUIState();
+      populateEmployeeDropdowns();
+      renderCalendar();
+      renderSchedulesList();
+      renderEmployeesList();
+      if (window.lucide) {
+        try { window.lucide.createIcons(); } catch (e) {}
+      }
+    }
+
+    function registerSingleFilePWA() {
+      if ('serviceWorker' in navigator) {
+        const swCode = `
+          self.addEventListener('install', (e) => self.skipWaiting());
+          self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+          self.addEventListener('fetch', (e) => {});
+        `;
+        try {
+          const blob = new Blob([swCode], { type: 'application/javascript' });
+          const swUrl = URL.createObjectURL(blob);
+          navigator.serviceWorker.register(swUrl).catch(() => {});
+        } catch (err) {
+          // Ignore SW blob restrictions in sandboxed iframes
+        }
+      }
+
+      let deferredPrompt;
+      const installBtn = document.getElementById('btn-install-pwa');
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        if (installBtn) {
+          installBtn.classList.remove('hidden');
+          installBtn.onclick = async () => {
+            deferredPrompt.prompt();
+            await deferredPrompt.userChoice;
+            installBtn.classList.add('hidden');
+          };
+        }
+      });
+    }
+
+    // Ekspos fungsi ke objek global window.app agar dapat dipanggil dari atribut onclick HTML
+    window.app = {
+      switchTab,
+      changeMonth,
+      goToToday,
+      renderCalendar,
+      openDateModal,
+      closeDateModal,
+      openQuickBookingModal,
+      setDurationMode,
+      onStartDateChange,
+      checkBookingFormConflicts,
+      submitNewBooking,
+      toggleQuickAddEmployee,
+      saveQuickEmployee,
+      setScheduleFilter,
+      renderSchedulesList,
+      openRescheduleModal,
+      closeRescheduleModal,
+      setRescheduleMode,
+      onRescheduleDateChange,
+      checkRescheduleConflicts,
+      submitReschedule,
+      promptDeleteBooking,
+      closeConfirmModal,
+      submitNewEmployee,
+      openEditEmployeeModal,
+      closeEditEmployeeModal,
+      submitEditEmployee,
+      promptDeleteEmployee,
+      filterScheduleByEmployee,
+      resetDemoData,
+      jumpToCalendarDate,
+      openAuthModal,
+      closeAuthModal,
+      goToAdminPanel,
+      handleAdminLogin,
+      handleAdminLogout,
+      updateBrandingPreview,
+      handleLogoUpload,
+      saveSiteSettings,
+      resetDefaultBranding
+    };
+
+    // Jalankan inisialisasi saat halaman selesai dimuat
+    window.addEventListener('DOMContentLoaded', async () => {
+      await autoSetupDatabase();
+      const now = new Date();
+      const todayStr = formatDateYMD(now.getFullYear(), now.getMonth(), now.getDate());
+      document.getElementById('booking-start-date').value = todayStr;
+      document.getElementById('booking-end-date').value = todayStr;
+
+      refreshAllViews();
+      switchTab('calendar');
+      registerSingleFilePWA();
+    });
+  </script>
+</body>
+</html>
